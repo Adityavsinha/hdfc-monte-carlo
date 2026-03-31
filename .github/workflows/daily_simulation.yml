@@ -116,7 +116,7 @@ jobs:
           cp outputs/hdfc_dashboard.html docs/index.html
           echo "Last updated: $(date)" > docs/last_updated.txt
 
-      - name: Commit and push updated dashboard
+     - name: Commit and push updated dashboard
         run: |
           git config --global user.name "HDFC Bot"
           git config --global user.email "bot@hdfc-monte-carlo.com"
