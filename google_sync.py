@@ -251,7 +251,7 @@ def _write_summary(sh, results, drive_links: dict):
     ws.update("A1", rows)
 
     # ── Formatting via Sheets API ────────────
-    _format_summary_sheet(sh.spreadsheet_id, ws, creds=None)
+    _format_summary_sheet(sh.id, ws, creds=None)
 
 
 def _format_summary_sheet(spreadsheet_id, ws, creds):
