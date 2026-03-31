@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HDFC Bank — Monte Carlo Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --surface2: #21262d;
+    --border: #30363d; --text: #e6edf3; --muted: #8b949e;
+    --blue: #58a6ff; --green: #3fb950; --red: #f85149;
+    --gold: #d29922; --purple: #bc8cff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; }
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .header-left h1 { font-size: 20px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+  .header-left p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .price-badge { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; text-align: center; }
+  .price-badge .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .price-badge .value { font-size: 22px; font-weight: 700; color: var(--blue); }
+  .links-bar { background: var(--surface2); border-bottom: 1px solid var(--border); padding: 10px 32px; display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+  .share-btn { display: inline-flex; align-items: center; gap: 5px; background: var(--surface); border: 1px solid var(--border); color: var(--blue); padding: 5px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; transition: border-color 0.15s; }
+  .share-btn:hover { border-color: var(--blue); }
+  .main { padding: 24px 32px; max-width: 1400px; margin: 0 auto; }
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .metric { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .metric .m-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .metric .m-value { font-size: 20px; font-weight: 700; }
+  .metric .m-sub { font-size: 11px; margin-top: 4px; }
+  .green { color: var(--green); } .red { color: var(--red); } .blue { color: var(--blue); } .gold { color: var(--gold); } .purple { color: var(--purple); }
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; }
+  .chart-wrap { position: relative; height: 220px; }
+  .chart-wrap.tall { height: 260px; }
+  .prob-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .prob-row:last-child { border-bottom: none; }
+  .prob-label { font-size: 13px; color: var(--muted); }
+  .prob-bar-wrap { flex: 1; margin: 0 14px; background: var(--surface2); border-radius: 4px; height: 6px; }
+  .prob-bar { height: 6px; border-radius: 4px; }
+  .prob-val { font-size: 13px; font-weight: 700; min-width: 42px; text-align: right; }
+  .scenario-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .scenario-table th { text-align: left; color: var(--muted); font-weight: 500; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .scenario-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .scenario-table tr:last-child td { border-bottom: none; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge-red { background: rgba(248,81,73,0.15); color: var(--red); }
+  .badge-blue { background: rgba(88,166,255,0.15); color: var(--blue); }
+  .footer { text-align: center; padding: 24px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: 8px; }
+  @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } .chart-card.full { grid-column: 1; } .main { padding: 16px; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>HDFC Bank Ltd — Monte Carlo Simulation</h1>
+    <p>NSE: HDFCBANK &nbsp;·&nbsp; 10,000 simulations &nbsp;·&nbsp; 252-day horizon &nbsp;·&nbsp; Last updated: 31 Mar 2026, 20:14 IST</p>
+  </div>
+  <div class="price-badge">
+    <div class="label">Current Price</div>
+    <div class="value">₹731.55</div>
+  </div>
+</div>
+
+
+
+<div class="main">
+
+  <!-- Metric Cards -->
+  <div class="metrics-grid">
+    <div class="metric">
+      <div class="m-label">Expected Price</div>
+      <div class="m-value blue">₹813</div>
+      <div class="m-sub green">+11.1% expected return</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Best Case (95th pct)</div>
+      <div class="m-value green">₹1,256</div>
+      <div class="m-sub green">+71.7% upside</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Worst Case (5th pct)</div>
+      <div class="m-value red">₹486</div>
+      <div class="m-sub red">-33.5% downside</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">VaR 95%</div>
+      <div class="m-value red">₹245</div>
+      <div class="m-sub muted" style="color:var(--muted)">33.5% of investment</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">P(Price Goes Up)</div>
+      <div class="m-value green">59.0%</div>
+      <div class="m-sub" style="color:var(--muted)">probability of profit</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Annual Volatility</div>
+      <div class="m-value gold">29.2%</div>
+      <div class="m-sub" style="color:var(--muted)">rolling EWMA</div>
+    </div>
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div class="charts-grid">
+
+    <!-- Price Paths -->
+    <div class="chart-card full">
+      <div class="chart-title">Simulated Price Paths — Percentile Fan</div>
+      <div class="chart-wrap tall">
+        <canvas id="pathsChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Histogram -->
+    <div class="chart-card">
+      <div class="chart-title">Terminal Price Distribution (Day 252)</div>
+      <div class="chart-wrap">
+        <canvas id="histChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Scenarios -->
+    <div class="chart-card">
+      <div class="chart-title">Scenario Analysis — Bull / Base / Bear</div>
+      <div class="chart-wrap">
+        <canvas id="scenChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Probabilities -->
+    <div class="chart-card">
+      <div class="chart-title">Probability Breakdown</div>
+      <div style="margin-top: 8px;">
+        <div class="prob-row">
+          <span class="prob-label">Price goes up (any gain)</span>
+          <div class="prob-bar-wrap"><div class="prob-bar" style="width:59.0%; background:var(--green);"></div></div>
+          <span class="prob-val green">59.0%</span>
+        </div>
+        <div class="prob-row">
+          <span class="prob-label">Price gains more than +10%</span>
+          <div class="prob-bar-wrap"><div class="prob-bar" style="width:45.9%; background:var(--blue);"></div></div>
+          <span class="prob-val blue">45.9%</span>
+        </div>
+        <div class="prob-row">
+          <span class="prob-label">Price stays flat (±5%)</span>
+          <div class="prob-bar-wrap"><div class="prob-bar" style="width:26.1%; background:var(--gold);"></div></div>
+          <span class="prob-val gold">26.1%</span>
+        </div>
+        <div class="prob-row">
+          <span class="prob-label">Price drops more than -10%</span>
+          <div class="prob-bar-wrap"><div class="prob-bar" style="width:28.0%; background:var(--red);"></div></div>
+          <span class="prob-val red">28.0%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scenario Table -->
+    <div class="chart-card">
+      <div class="chart-title">Scenario Summary</div>
+      <table class="scenario-table">
+        <thead>
+          <tr><th>Scenario</th><th>Median Price</th><th>Return</th><th>Confidence</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-green">Bull</span></td>
+            <td class="green">₹816</td>
+            <td class="green">+11.5%</td>
+            <td style="color:var(--muted)">Optimistic</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-blue">Base</span></td>
+            <td class="blue">₹793</td>
+            <td class="green">+8.4%</td>
+            <td style="color:var(--muted)">Most likely</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-red">Bear</span></td>
+            <td class="red">₹734</td>
+            <td class="red">+0.4%</td>
+            <td style="color:var(--muted)">Pessimistic</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top: 20px;">
+        <div class="chart-title">Rolling Volatility (63-day)</div>
+        <div class="chart-wrap" style="height:130px; margin-top:10px;">
+          <canvas id="volChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="footer">
+  HDFC Bank Monte Carlo System &nbsp;·&nbsp; GBM + Student-t fat tails + EWMA volatility &nbsp;·&nbsp; Generated 31 Mar 2026, 20:14 IST
+  <br>This is a quantitative model output, not financial advice.
+</div>
+
+<script>
+const days = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49, 51, 53, 55, 57, 59, 61, 63, 65, 67, 69, 71, 73, 75, 77, 79, 81, 83, 85, 87, 89, 91, 93, 95, 97, 99, 101, 103, 105, 107, 109, 111, 113, 115, 117, 119, 121, 123, 125, 127, 129, 131, 133, 135, 137, 139, 141, 143, 145, 147, 149, 151, 153, 155, 157, 159, 161, 163, 165, 167, 169, 171, 173, 175, 177, 179, 181, 183, 185, 187, 189, 191, 193, 195, 197, 199, 201, 203, 205, 207, 209, 211, 213, 215, 217, 219, 221, 223, 225, 227, 229, 231, 233, 235, 237, 239, 241, 243, 245, 247, 249, 251];
+const p5   = [711.04, 695.47, 685.13, 677.76, 670.46, 663.82, 658.63, 654.36, 648.89, 644.23, 641.23, 637.02, 633.01, 629.22, 627.28, 624.83, 620.91, 616.57, 614.79, 611.82, 609.77, 606.39, 603.41, 602.9, 599.09, 596.28, 594.86, 592.99, 590.05, 588.77, 587.46, 585.51, 581.89, 580.65, 578.69, 576.57, 574.17, 573.63, 572.07, 570.0, 568.96, 567.61, 567.0, 564.92, 564.24, 561.76, 561.3, 559.48, 558.31, 555.69, 555.54, 553.71, 552.59, 551.57, 549.29, 547.9, 546.67, 547.03, 544.93, 543.4, 542.65, 540.5, 539.41, 538.86, 537.93, 535.97, 534.48, 532.38, 531.44, 530.85, 529.52, 527.77, 528.37, 527.66, 526.79, 525.01, 523.65, 522.9, 521.74, 519.56, 518.87, 519.13, 517.22, 515.96, 513.47, 512.33, 512.4, 513.46, 512.4, 513.13, 511.82, 509.44, 508.8, 506.8, 506.67, 506.34, 504.54, 505.39, 502.97, 502.69, 503.64, 501.59, 500.18, 499.73, 497.58, 496.03, 495.99, 497.1, 494.84, 496.12, 492.54, 493.17, 492.54, 490.82, 489.19, 490.03, 489.02, 489.55, 488.63, 487.45, 487.18, 487.91, 487.76, 486.95, 485.87, 486.42];
+const p25  = [724.32, 717.95, 713.78, 709.63, 707.46, 705.23, 703.55, 701.0, 699.42, 697.61, 696.25, 693.84, 692.27, 690.79, 689.63, 689.33, 687.59, 686.66, 685.45, 683.56, 682.77, 682.39, 682.11, 681.29, 679.87, 678.85, 677.38, 676.36, 675.08, 674.02, 673.8, 673.66, 673.52, 670.95, 671.99, 671.04, 670.47, 669.97, 669.52, 669.16, 668.07, 666.9, 665.16, 665.46, 665.02, 664.18, 663.9, 663.52, 663.44, 663.28, 663.31, 662.07, 661.4, 661.86, 661.3, 661.34, 659.74, 659.63, 660.24, 660.56, 659.04, 658.05, 657.18, 658.23, 658.03, 656.73, 656.06, 656.08, 656.41, 656.14, 654.99, 654.44, 653.4, 652.35, 651.78, 650.8, 651.57, 650.97, 650.51, 650.88, 650.68, 649.82, 649.37, 649.2, 649.03, 648.7, 648.65, 648.48, 648.23, 648.84, 649.23, 648.84, 648.6, 649.16, 648.4, 647.48, 647.42, 646.54, 645.09, 645.8, 644.97, 646.29, 646.7, 647.36, 647.0, 646.95, 646.49, 644.95, 644.9, 643.44, 643.58, 643.03, 641.39, 641.46, 640.6, 641.42, 640.79, 641.69, 639.64, 639.47, 640.37, 640.6, 641.59, 641.34, 640.26, 639.98];
+const p50  = [731.83, 732.34, 732.67, 732.87, 733.26, 734.01, 734.34, 734.72, 735.33, 734.99, 735.19, 736.1, 735.73, 736.85, 736.83, 737.35, 737.9, 739.35, 738.51, 739.06, 740.38, 740.29, 740.93, 741.28, 741.65, 741.65, 741.54, 742.25, 742.89, 743.46, 743.49, 745.01, 744.18, 744.76, 745.32, 745.4, 746.31, 745.96, 747.15, 747.78, 747.23, 747.7, 747.4, 747.93, 748.57, 749.72, 749.84, 750.2, 750.67, 751.08, 751.15, 751.41, 752.48, 752.21, 753.3, 754.62, 754.24, 754.07, 755.05, 754.6, 755.24, 756.47, 757.4, 757.32, 757.39, 757.97, 759.28, 757.84, 757.69, 758.95, 758.34, 758.7, 760.36, 760.52, 761.05, 761.12, 760.5, 760.87, 762.76, 763.07, 762.96, 763.84, 763.94, 764.0, 764.61, 764.8, 765.37, 766.4, 766.25, 766.43, 767.2, 767.36, 767.52, 768.55, 770.25, 770.25, 768.69, 769.53, 770.18, 770.48, 770.25, 771.8, 772.12, 773.49, 772.69, 773.28, 773.84, 775.48, 775.62, 776.07, 776.36, 775.86, 776.85, 776.72, 776.18, 777.43, 777.57, 779.14, 778.55, 779.35, 778.31, 778.36, 780.0, 781.37, 780.75, 780.94];
+const p75  = [739.52, 746.83, 751.98, 756.29, 760.13, 763.82, 767.78, 770.5, 773.53, 776.3, 778.58, 780.71, 783.24, 784.97, 787.41, 790.58, 793.28, 794.14, 797.5, 799.08, 800.83, 802.58, 804.47, 808.05, 809.12, 811.69, 811.75, 814.65, 815.79, 817.77, 820.98, 823.3, 825.28, 826.45, 827.74, 828.93, 830.43, 830.9, 832.75, 834.63, 836.75, 837.06, 839.72, 840.68, 842.99, 844.18, 845.78, 846.55, 847.46, 848.56, 850.92, 853.11, 853.04, 854.64, 857.67, 858.82, 860.86, 861.63, 863.23, 864.23, 865.96, 868.32, 868.47, 869.98, 871.32, 873.08, 873.2, 875.33, 877.45, 876.57, 879.43, 880.57, 883.18, 885.26, 886.75, 886.04, 886.7, 887.48, 887.54, 891.0, 891.92, 892.22, 893.63, 893.78, 897.07, 896.05, 898.49, 898.58, 901.21, 902.72, 903.31, 905.22, 906.82, 908.14, 909.68, 910.45, 911.58, 913.19, 914.28, 913.86, 913.73, 917.2, 919.97, 917.83, 920.49, 921.74, 922.77, 923.42, 924.44, 925.65, 927.36, 929.38, 931.62, 932.6, 934.7, 934.84, 936.37, 938.21, 939.17, 938.15, 939.27, 939.91, 942.41, 944.85, 946.26, 948.26];
+const p95  = [753.82, 770.58, 781.92, 792.83, 801.88, 810.44, 818.46, 826.03, 833.9, 839.59, 846.62, 852.33, 858.88, 863.59, 870.18, 875.9, 880.5, 885.7, 889.12, 895.16, 897.85, 903.07, 907.82, 912.24, 916.45, 919.67, 924.84, 931.44, 938.3, 940.88, 946.02, 949.62, 951.27, 953.69, 960.04, 964.59, 966.59, 972.29, 976.29, 981.42, 983.37, 985.74, 989.41, 992.93, 998.82, 1002.83, 1001.84, 1005.03, 1007.51, 1012.14, 1015.56, 1016.78, 1022.45, 1025.49, 1031.89, 1036.07, 1039.14, 1038.32, 1041.58, 1046.74, 1052.53, 1055.85, 1056.7, 1059.69, 1063.83, 1066.48, 1070.2, 1074.01, 1072.72, 1077.8, 1080.28, 1083.43, 1086.03, 1091.43, 1087.76, 1096.27, 1099.31, 1103.65, 1102.44, 1110.02, 1108.54, 1117.52, 1118.29, 1120.92, 1124.97, 1125.96, 1131.39, 1133.75, 1135.85, 1141.27, 1145.37, 1145.15, 1151.64, 1155.13, 1159.55, 1164.71, 1169.21, 1172.22, 1174.0, 1177.41, 1177.95, 1180.99, 1185.22, 1184.53, 1184.85, 1190.09, 1195.82, 1200.0, 1201.36, 1204.99, 1206.54, 1212.1, 1215.17, 1214.13, 1219.15, 1229.15, 1229.92, 1232.41, 1238.73, 1237.88, 1242.04, 1246.63, 1250.1, 1252.35, 1256.79, 1256.12];
+const bullM = [731.67, 732.77, 733.72, 734.24, 735.05, 734.67, 735.61, 736.93, 736.04, 737.04, 737.73, 738.64, 740.16, 741.26, 741.82, 740.0, 742.85, 742.72, 743.19, 746.79, 747.91, 745.92, 745.92, 745.79, 747.77, 746.89, 748.17, 745.98, 748.65, 750.54, 752.8, 751.22, 750.57, 750.16, 751.69, 751.55, 750.54, 752.59, 755.78, 756.93, 756.38, 756.75, 758.87, 760.37, 761.41, 760.68, 764.84, 764.99, 763.0, 766.03, 766.09, 765.14, 764.6, 765.63, 768.34, 769.99, 774.45, 772.04, 769.89, 767.78, 769.62, 770.78, 771.38, 772.87, 775.28, 775.47, 772.75, 772.48, 774.86, 776.22, 780.07, 777.72, 779.19, 782.27, 779.42, 781.16, 781.29, 785.08, 785.79, 788.9, 789.88, 787.93, 790.04, 790.72, 792.06, 790.86, 790.54, 789.5, 790.14, 791.48, 787.02, 789.53, 790.98, 792.92, 791.79, 791.11, 794.48, 798.85, 798.91, 798.44, 799.11, 798.53, 799.51, 800.66, 802.58, 804.5, 804.69, 804.44, 807.66, 808.14, 808.71, 807.3, 811.52, 809.51, 813.72, 811.33, 813.18, 814.74, 811.16, 814.58, 810.78, 812.46, 818.27, 815.35, 819.18, 816.74];
+const baseM = [731.35, 732.25, 733.49, 731.53, 732.36, 731.85, 730.39, 728.82, 730.58, 729.58, 731.35, 731.32, 734.49, 733.34, 732.47, 734.59, 734.85, 736.06, 735.01, 737.85, 738.63, 736.6, 738.3, 736.44, 737.19, 737.89, 736.99, 739.52, 740.81, 741.37, 741.95, 740.75, 742.47, 744.93, 746.61, 747.32, 746.28, 747.42, 747.46, 750.92, 753.59, 751.37, 749.55, 753.73, 754.98, 756.16, 755.48, 757.83, 754.84, 754.37, 752.86, 754.2, 753.67, 752.47, 754.75, 755.38, 761.06, 757.02, 758.51, 760.35, 762.62, 760.89, 760.17, 757.81, 758.58, 761.48, 759.88, 762.82, 769.05, 764.51, 768.94, 765.71, 770.05, 770.59, 769.66, 768.66, 771.43, 770.51, 766.97, 771.6, 769.77, 772.61, 773.06, 774.19, 777.27, 778.41, 785.61, 787.0, 782.4, 784.49, 786.34, 780.32, 781.22, 776.86, 778.12, 775.31, 774.86, 778.6, 780.93, 777.84, 782.67, 781.94, 783.87, 788.46, 783.67, 786.3, 785.1, 785.02, 789.44, 787.91, 783.97, 785.79, 787.28, 784.62, 782.08, 785.45, 790.97, 787.39, 788.1, 787.31, 783.8, 792.39, 789.87, 787.45, 790.61, 788.72];
+const bearM = [731.94, 732.48, 734.17, 730.68, 730.22, 729.87, 728.02, 725.54, 732.26, 728.4, 728.61, 729.32, 726.49, 729.24, 730.12, 728.88, 727.56, 727.93, 728.06, 731.51, 732.7, 727.23, 732.8, 729.91, 729.33, 733.82, 730.11, 729.09, 733.09, 734.0, 735.75, 736.6, 737.46, 735.92, 738.47, 737.81, 737.24, 733.75, 737.82, 739.46, 741.0, 737.19, 737.56, 740.16, 743.51, 740.85, 742.77, 739.59, 741.87, 742.01, 738.82, 734.65, 737.78, 738.0, 739.53, 740.75, 745.63, 745.35, 737.56, 740.32, 743.75, 744.98, 742.69, 741.8, 739.23, 746.73, 745.72, 743.56, 742.86, 741.1, 738.14, 741.96, 739.28, 741.12, 736.81, 736.72, 732.99, 730.88, 735.06, 733.52, 734.32, 732.05, 731.45, 732.23, 732.29, 730.97, 736.52, 739.83, 735.82, 733.76, 739.07, 735.62, 737.54, 741.97, 735.45, 737.57, 742.38, 740.96, 738.21, 739.54, 734.36, 733.14, 733.36, 735.28, 739.89, 740.07, 745.77, 741.14, 740.36, 745.31, 741.05, 735.76, 740.6, 744.58, 744.61, 748.07, 737.35, 734.42, 740.18, 742.44, 742.97, 740.89, 733.44, 742.03, 738.65, 737.91];
+const histL = ["287", "320", "354", "388", "422", "456", "490", "524", "558", "592", "626", "660", "693", "727", "761", "795", "829", "863", "897", "931", "965", "999", "1032", "1066", "1100", "1134", "1168", "1202", "1236", "1270", "1304", "1338", "1372", "1405", "1439", "1473", "1507", "1541", "1575", "1609", "1643", "1677", "1711", "1745", "1778", "1812", "1846", "1880", "1914", "1948", "1982", "2016", "2050", "2084", "2118", "2151", "2185", "2219", "2253", "2287"];
+const histD = [10, 15, 29, 73, 120, 175, 249, 362, 465, 507, 537, 590, 607, 585, 635, 580, 548, 517, 476, 401, 387, 335, 298, 271, 209, 156, 144, 115, 94, 83, 67, 51, 58, 46, 35, 38, 23, 16, 23, 14, 14, 5, 5, 6, 2, 6, 2, 5, 1, 2, 1, 0, 2, 0, 1, 0, 1, 1, 0, 2];
+const rvDates = ["May 2016", "Jun 2016", "Jul 2016", "Aug 2016", "Aug 2016", "Sep 2016", "Nov 2016", "Dec 2016", "Dec 2016", "Jan 2017", "Feb 2017", "Mar 2017", "Apr 2017", "May 2017", "Jun 2017", "Jul 2017", "Aug 2017", "Sep 2017", "Oct 2017", "Nov 2017", "Dec 2017", "Jan 2018", "Feb 2018", "Mar 2018", "Apr 2018", "May 2018", "Jun 2018", "Jul 2018", "Aug 2018", "Sep 2018", "Oct 2018", "Nov 2018", "Dec 2018", "Jan 2019", "Feb 2019", "Mar 2019", "Apr 2019", "May 2019", "Jun 2019", "Jul 2019", "Aug 2019", "Sep 2019", "Oct 2019", "Nov 2019", "Dec 2019", "Jan 2020", "Jan 2020", "Feb 2020", "Mar 2020", "May 2020", "Jun 2020", "Jun 2020", "Jul 2020", "Aug 2020", "Sep 2020", "Oct 2020", "Nov 2020", "Dec 2020", "Jan 2021", "Feb 2021", "Mar 2021", "Apr 2021", "May 2021", "Jun 2021", "Jul 2021", "Aug 2021", "Sep 2021", "Oct 2021", "Nov 2021", "Dec 2021", "Jan 2022", "Feb 2022", "Mar 2022", "Apr 2022", "May 2022", "Jun 2022", "Jun 2022", "Jul 2022", "Aug 2022", "Sep 2022", "Oct 2022", "Nov 2022", "Dec 2022", "Jan 2023", "Feb 2023", "Mar 2023", "Apr 2023", "May 2023", "Jun 2023", "Jul 2023", "Aug 2023", "Sep 2023", "Oct 2023", "Nov 2023", "Dec 2023", "Jan 2024", "Feb 2024", "Mar 2024", "Apr 2024", "May 2024", "Jun 2024", "Jul 2024", "Aug 2024", "Sep 2024", "Oct 2024", "Nov 2024", "Dec 2024", "Jan 2025", "Feb 2025", "Mar 2025", "Apr 2025", "May 2025", "Jun 2025", "Jul 2025", "Jul 2025", "Aug 2025", "Sep 2025", "Oct 2025", "Nov 2025", "Dec 2025", "Jan 2026", "Feb 2026", "Mar 2026"];
+const rvVals  = [17.92, 14.68, 14.89, 14.76, 14.16, 13.89, 13.91, 16.46, 15.25, 15.14, 14.81, 13.51, 14.95, 13.54, 13.69, 11.03, 12.1, 11.8, 13.4, 14.11, 14.33, 13.88, 14.45, 14.56, 16.76, 14.95, 18.58, 17.12, 17.45, 12.0, 15.35, 17.04, 18.83, 16.61, 15.2, 13.86, 13.62, 15.3, 17.65, 16.76, 17.64, 19.17, 28.45, 28.09, 25.44, 16.24, 14.46, 16.46, 53.69, 64.1, 68.74, 52.18, 41.81, 31.37, 26.13, 27.07, 26.7, 28.5, 25.18, 28.51, 30.51, 33.65, 31.08, 27.88, 23.23, 20.83, 16.02, 16.93, 17.44, 18.28, 19.69, 19.11, 26.14, 34.42, 37.64, 35.09, 32.4, 20.94, 16.96, 18.16, 20.01, 22.58, 20.84, 17.99, 16.81, 18.32, 17.95, 19.23, 17.81, 18.7, 14.47, 14.47, 15.57, 15.04, 16.86, 14.28, 25.26, 25.51, 26.33, 17.87, 23.33, 25.78, 25.38, 19.95, 17.87, 18.84, 20.12, 20.35, 18.82, 17.58, 19.11, 19.77, 20.54, 19.99, 15.3, 13.42, 11.52, 11.11, 10.89, 11.28, 12.25, 13.82, 20.13];
+const S0 = 731.5499877929688;
+const VaR95line = 486.25;
+
+Chart.defaults.color = '#8b949e';
+Chart.defaults.borderColor = '#30363d';
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+
+// ── Price Paths Chart ──
+new Chart(document.getElementById('pathsChart'), {
+  type: 'line',
+  data: {
+    labels: days,
+    datasets: [
+      { label: '95th pct', data: p95, borderColor: '#3fb950', borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, fill: false },
+      { label: '75th pct', data: p75, borderColor: '#58a6ff', borderWidth: 0.5, pointRadius: 0, fill: '+1', backgroundColor: 'rgba(88,166,255,0.06)' },
+      { label: 'Median',   data: p50, borderColor: '#d29922', borderWidth: 2.5, pointRadius: 0, fill: false },
+      { label: '25th pct', data: p25, borderColor: '#58a6ff', borderWidth: 0.5, pointRadius: 0, fill: false },
+      { label: '5th pct',  data: p5,  borderColor: '#f85149', borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, fill: false },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },
+    scales: {
+      x: { ticks: { maxTicksLimit: 10 }, grid: { color: '#21262d' } },
+      y: { ticks: { callback: v => '₹' + v.toLocaleString('en-IN') }, grid: { color: '#21262d' } }
+    }
+  }
+});
+
+// ── Histogram ──
+new Chart(document.getElementById('histChart'), {
+  type: 'bar',
+  data: {
+    labels: histL,
+    datasets: [{ label: 'Simulations', data: histD, backgroundColor: 'rgba(88,166,255,0.6)', borderColor: 'rgba(88,166,255,0.9)', borderWidth: 0.5 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: {
+      legend: { display: false },
+      annotation: {}
+    },
+    scales: {
+      x: { ticks: { maxTicksLimit: 8, callback: (v, i) => '₹' + parseFloat(histL[i]).toLocaleString('en-IN', {maximumFractionDigits:0}) }, grid: { display: false } },
+      y: { ticks: { maxTicksLimit: 5 }, grid: { color: '#21262d' } }
+    }
+  }
+});
+
+// ── Scenarios ──
+new Chart(document.getElementById('scenChart'), {
+  type: 'line',
+  data: {
+    labels: days,
+    datasets: [
+      { label: 'Bull', data: bullM, borderColor: '#3fb950', borderWidth: 2, pointRadius: 0, fill: false },
+      { label: 'Base', data: baseM, borderColor: '#58a6ff', borderWidth: 2, pointRadius: 0, fill: false },
+      { label: 'Bear', data: bearM, borderColor: '#f85149', borderWidth: 2, pointRadius: 0, fill: false },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },
+    scales: {
+      x: { ticks: { maxTicksLimit: 8 }, grid: { color: '#21262d' } },
+      y: { ticks: { callback: v => '₹' + v.toLocaleString('en-IN') }, grid: { color: '#21262d' } }
+    }
+  }
+});
+
+// ── Rolling Vol ──
+new Chart(document.getElementById('volChart'), {
+  type: 'line',
+  data: {
+    labels: rvDates,
+    datasets: [{ label: '63-day Vol', data: rvVals, borderColor: '#d29922', borderWidth: 1.5, pointRadius: 0, fill: true, backgroundColor: 'rgba(210,153,34,0.1)' }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { maxTicksLimit: 6, font: { size: 10 } }, grid: { color: '#21262d' } },
+      y: { ticks: { callback: v => v.toFixed(1) + '%', font: { size: 10 } }, grid: { color: '#21262d' } }
+    }
+  }
+});
+</script>
+</body>
+</html>
