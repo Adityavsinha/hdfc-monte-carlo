@@ -77,9 +77,12 @@ jobs:
           git config --global user.name "HDFC Bot"
           git config --global user.email "bot@hdfc-monte-carlo.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git add docs/
+          git stash
           git fetch origin main
+          git checkout main
+          git stash pop
           git add docs/
           git diff --staged --quiet && echo "Nothing to commit" && exit 0
           git commit -m "Auto update: $(date +'%d %b %Y %H:%M IST')"
-          git rebase origin/main
-          git push origin HEAD:main
+          git push origin main
