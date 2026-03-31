@@ -6,7 +6,48 @@ on:
   workflow_dispatch:
 
 permissions:
+  contents: name: HDFC Monte Carlo Daily Simulation
+
+on:
+  schedule:
+    - cron: '0 13 * * 1-5'
+  workflow_dispatch:
+
+permissions:
   contents: write
+  actions: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2        # ← bumped
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.4.0    # ← bumped
+        with:
+          python-version: '3.12'
+
+      # ... all your existing steps unchanged ...
+
+      - name: Commit and push updated dashboard
+        run: |
+          git config --global user.name "HDFC Bot"
+          git config --global user.email "bot@hdfc-monte-carlo.com"
+          git add docs/
+          git diff --staged --quiet || git commit -m "Auto update: $(date +'%d %b %Y %H:%M IST')"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git push origin HEAD:${{ github.ref_name }}   # ← explicit auth + branchwrite
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
