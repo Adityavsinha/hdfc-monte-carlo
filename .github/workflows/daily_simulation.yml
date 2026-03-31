@@ -1,0 +1,82 @@
+name: HDFC Monte Carlo Daily Simulation
+
+on:
+  schedule:
+    # Runs at 13:00 UTC = 6:30 PM IST, every weekday (Mon-Fri)
+    - cron: '0 13 * * 1-5'
+  workflow_dispatch:
+    # Also allows manual trigger from GitHub website (one click)
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+
+      # ── 1. Download your code from GitHub ──
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Install Python ──
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      # ── 3. Install all required libraries ──
+      - name: Install dependencies
+        run: |
+          pip install yfinance pandas numpy scipy matplotlib openpyxl pyarrow
+          pip install google-auth google-auth-oauthlib google-auth-httplib2
+          pip install google-api-python-client gspread
+
+      # ── 4. Create Google credentials from GitHub Secret ──
+      - name: Setup Google credentials
+        env:
+          GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDS }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+        run: |
+          echo "$GOOGLE_CREDS" > google_creds.json
+          echo "$GOOGLE_CLIENT_SECRET" > client_secret.json
+
+      # ── 5. Create config file ──
+      - name: Create config
+        env:
+          DRIVE_FOLDER_ID: ${{ secrets.DRIVE_FOLDER_ID }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+        run: |
+          cat > config.json << EOF
+          {
+            "drive_folder_id": "$DRIVE_FOLDER_ID",
+            "spreadsheet_id": "$SPREADSHEET_ID",
+            "ticker": "HDFCBANK.NS",
+            "simulations": 10000,
+            "horizon_days": 252,
+            "auto_schedule": true
+          }
+          EOF
+
+      # ── 6. Run the simulation ──
+      - name: Run Monte Carlo simulation
+        run: python run_auto.py
+
+      # ── 7. Copy HTML dashboard to docs/ folder for GitHub Pages ──
+      - name: Prepare GitHub Pages
+        run: |
+          mkdir -p docs
+          cp outputs/hdfc_dashboard.html docs/index.html
+          echo "Dashboard updated: $(date)" >> docs/last_updated.txt
+
+      # ── 8. Save updated dashboard back to GitHub ──
+      - name: Commit and push updated dashboard
+        run: |
+          git config --global user.name "HDFC Bot"
+          git config --global user.email "bot@hdfc-monte-carlo.com"
+          git add docs/
+          git add outputs/ || true
+          git diff --staged --quiet || git commit -m "Auto update: $(date +'%d %b %Y %H:%M IST')"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
