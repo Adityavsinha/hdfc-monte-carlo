@@ -6,48 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: name: HDFC Monte Carlo Daily Simulation
-
-on:
-  schedule:
-    - cron: '0 13 * * 1-5'
-  workflow_dispatch:
-
-permissions:
   contents: write
-  actions: read
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
-jobs:
-  simulate:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    steps:
-
-      - name: Checkout repository
-        uses: actions/checkout@v4.2.2        # ← bumped
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5.4.0    # ← bumped
-        with:
-          python-version: '3.12'
-
-      # ... all your existing steps unchanged ...
-
-      - name: Commit and push updated dashboard
-        run: |
-          git config --global user.name "HDFC Bot"
-          git config --global user.email "bot@hdfc-monte-carlo.com"
-          git add docs/
-          git diff --staged --quiet || git commit -m "Auto update: $(date +'%d %b %Y %H:%M IST')"
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git push origin HEAD:${{ github.ref_name }}   # ← explicit auth + branchwrite
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -100,12 +59,9 @@ jobs:
 
       - name: Verify files exist
         run: |
-          echo "Files in directory:"
           ls -la
-          echo "Checking key files:"
-          test -f run_auto.py && echo "run_auto.py OK" || echo "run_auto.py MISSING"
-          test -f config.json && echo "config.json OK" || echo "config.json MISSING"
-          test -f google_creds.json && echo "google_creds.json OK" || echo "google_creds.json MISSING"
+          test -f run_auto.py && echo "run_auto.py OK" || echo "MISSING run_auto.py"
+          test -f config.json && echo "config.json OK" || echo "MISSING config.json"
 
       - name: Run Monte Carlo simulation
         run: python run_auto.py
@@ -116,12 +72,14 @@ jobs:
           cp outputs/hdfc_dashboard.html docs/index.html
           echo "Last updated: $(date)" > docs/last_updated.txt
 
-      - name: Commit and push updated dashboard
+      - name: Commit and push
         run: |
           git config --global user.name "HDFC Bot"
           git config --global user.email "bot@hdfc-monte-carlo.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git add docs/ outputs/
-          git diff --staged --quiet || git commit -m "Auto update: $(date +'%d %b %Y %H:%M IST')"
-          git pull --rebase origin main
+          git fetch origin main
+          git add docs/
+          git diff --staged --quiet && echo "Nothing to commit" && exit 0
+          git commit -m "Auto update: $(date +'%d %b %Y %H:%M IST')"
+          git rebase origin/main
           git push origin HEAD:main
