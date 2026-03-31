@@ -149,8 +149,7 @@ def write_sheets_dashboard(
     import gspread
     from googleapiclient.discovery import build
 
-    gc = gspread.Client(auth=creds)
-    gc.session = gspread.auth.AuthorizedSession(creds)
+    gc = gspread.authorize(creds)
     sh = gc.open_by_key(spreadsheet_id)
 
     # ── Make spreadsheet public ──────────────
