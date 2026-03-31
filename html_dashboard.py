@@ -131,7 +131,7 @@ def generate_html_dashboard(results: SimResults, log_returns, links: dict = None
 <div class="header">
   <div class="header-left">
     <h1>HDFC Bank Ltd — Monte Carlo Simulation</h1>
-    <p>NSE: HDFCBANK &nbsp;·&nbsp; {results.config.n_simulations:,} simulations &nbsp;·&nbsp; {T}-day horizon &nbsp;·&nbsp; Last updated: {now+5:30}</p>
+    <p>NSE: HDFCBANK &nbsp;·&nbsp; {results.config.n_simulations:,} simulations &nbsp;·&nbsp; {T}-day horizon &nbsp;·&nbsp; Last updated: {now}</p>
   </div>
   <div class="price-badge">
     <div class="label">Current Price</div>
