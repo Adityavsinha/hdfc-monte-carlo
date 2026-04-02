@@ -3,308 +3,439 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HDFC Bank — Monte Carlo Dashboard</title>
+<title>QuantEdge Analytics — Nifty 50 Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-  :root {
-    --bg: #0d1117; --surface: #161b22; --surface2: #21262d;
-    --border: #30363d; --text: #e6edf3; --muted: #8b949e;
-    --blue: #58a6ff; --green: #3fb950; --red: #f85149;
-    --gold: #d29922; --purple: #bc8cff;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; }
-  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-  .header-left h1 { font-size: 20px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
-  .header-left p { font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .price-badge { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; text-align: center; }
-  .price-badge .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
-  .price-badge .value { font-size: 22px; font-weight: 700; color: var(--blue); }
-  .links-bar { background: var(--surface2); border-bottom: 1px solid var(--border); padding: 10px 32px; display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
-  .share-btn { display: inline-flex; align-items: center; gap: 5px; background: var(--surface); border: 1px solid var(--border); color: var(--blue); padding: 5px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; transition: border-color 0.15s; }
-  .share-btn:hover { border-color: var(--blue); }
-  .main { padding: 24px 32px; max-width: 1400px; margin: 0 auto; }
-  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
-  .metric { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
-  .metric .m-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-  .metric .m-value { font-size: 20px; font-weight: 700; }
-  .metric .m-sub { font-size: 11px; margin-top: 4px; }
-  .green { color: var(--green); } .red { color: var(--red); } .blue { color: var(--blue); } .gold { color: var(--gold); } .purple { color: var(--purple); }
-  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
-  .chart-card.full { grid-column: 1 / -1; }
-  .chart-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; }
-  .chart-wrap { position: relative; height: 220px; }
-  .chart-wrap.tall { height: 260px; }
-  .prob-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
-  .prob-row:last-child { border-bottom: none; }
-  .prob-label { font-size: 13px; color: var(--muted); }
-  .prob-bar-wrap { flex: 1; margin: 0 14px; background: var(--surface2); border-radius: 4px; height: 6px; }
-  .prob-bar { height: 6px; border-radius: 4px; }
-  .prob-val { font-size: 13px; font-weight: 700; min-width: 42px; text-align: right; }
-  .scenario-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .scenario-table th { text-align: left; color: var(--muted); font-weight: 500; padding: 8px 12px; border-bottom: 1px solid var(--border); }
-  .scenario-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
-  .scenario-table tr:last-child td { border-bottom: none; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-  .badge-green { background: rgba(63,185,80,0.15); color: var(--green); }
-  .badge-red { background: rgba(248,81,73,0.15); color: var(--red); }
-  .badge-blue { background: rgba(88,166,255,0.15); color: var(--blue); }
-  .footer { text-align: center; padding: 24px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: 8px; }
-  @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } .chart-card.full { grid-column: 1; } .main { padding: 16px; } }
+:root{--bg:#f5f7fa;--white:#fff;--surface:#fff;--border:#e8edf5;--border2:#d0d9e8;--text:#0e1726;--text2:#4a5568;--muted:#8a9ab5;--blue:#1a56db;--blue-lt:#eff4ff;--blue-md:#c7d9ff;--green:#0b9e5e;--green-lt:#ecfdf5;--red:#e02d3c;--red-lt:#fff1f2;--gold:#b45309;--gold-lt:#fffbeb;--shadow-sm:0 1px 3px rgba(14,23,38,.06),0 1px 2px rgba(14,23,38,.04);--shadow-md:0 4px 16px rgba(14,23,38,.08),0 2px 6px rgba(14,23,38,.05);--shadow-lg:0 12px 40px rgba(14,23,38,.12),0 4px 12px rgba(14,23,38,.06);--r:12px;--rsm:8px;--rlg:16px}
+*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;line-height:1.6}
+.navbar{background:var(--white);border-bottom:1px solid var(--border);height:64px;display:flex;align-items:center;padding:0 40px;position:sticky;top:0;z-index:200;box-shadow:var(--shadow-sm)}
+.nav-logo-box{width:36px;height:36px;background:linear-gradient(135deg,#1a56db,#3b82f6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:#fff;box-shadow:0 2px 8px rgba(26,86,219,.35);flex-shrink:0}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-name{font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.3px}.nav-name span{color:var(--blue)}
+.nav-tagline{font-size:10px;color:var(--muted);font-weight:500;letter-spacing:.3px;line-height:1}
+.nav-center{flex:1;display:flex;justify-content:center}
+.nav-links{display:flex;gap:4px}
+.nav-link{padding:7px 14px;border-radius:var(--rsm);font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;border:none;background:none;transition:all .15s;font-family:'Plus Jakarta Sans',sans-serif}
+.nav-link:hover{background:#f0f3f8;color:var(--text)}.nav-link.active{background:var(--blue-lt);color:var(--blue)}
+.nav-right{display:flex;align-items:center;gap:12px}
+.live-badge{display:flex;align-items:center;gap:6px;background:var(--green-lt);border:1px solid #a7f3d0;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;color:var(--green)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.nav-updated{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.hero{background:linear-gradient(135deg,#0f2557 0%,#1a3a8f 50%,#1e4fc7 100%);padding:40px;color:#fff;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E")}
+.hero-in{position:relative;max-width:1320px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:24px}
+.hero-text h1{font-size:28px;font-weight:800;letter-spacing:-.5px}.hero-text h1 span{color:#93c5fd}
+.hero-text p{font-size:14px;color:rgba(255,255,255,.65);margin-top:6px;max-width:480px}
+.hero-stats{display:flex;gap:32px}
+.hs .val{font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace}.hs .lbl{font-size:11px;color:rgba(255,255,255,.55);margin-top:2px;font-weight:500}
+.page{max-width:1320px;margin:0 auto;padding:28px 40px 60px}
+.controls{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.search-box{position:relative;flex:1;min-width:220px;max-width:360px}
+.search-input{width:100%;height:40px;background:var(--white);border:1.5px solid var(--border);color:var(--text);padding:0 12px 0 38px;border-radius:var(--rsm);font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s;box-shadow:var(--shadow-sm)}
+.search-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.1)}
+.search-input::placeholder{color:var(--muted)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{height:34px;padding:0 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--white);color:var(--text2);transition:all .15s;box-shadow:var(--shadow-sm);font-family:'Plus Jakarta Sans',sans-serif}
+.chip:hover{border-color:var(--blue-md);color:var(--blue);background:var(--blue-lt)}.chip.active{border-color:var(--blue);color:var(--blue);background:var(--blue-lt)}
+.sort-sel{height:40px;padding:0 14px;border-radius:var(--rsm);border:1.5px solid var(--border);background:var(--white);color:var(--text);font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;cursor:pointer;outline:none;box-shadow:var(--shadow-sm);margin-left:auto}
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow-sm);transition:box-shadow .2s,transform .2s}
+.stat-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.si{width:36px;height:36px;border-radius:var(--rsm);display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:12px}
+.sl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.sv{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1}.ss{font-size:11px;color:var(--muted);margin-top:4px}
+.table-card{background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);box-shadow:var(--shadow-sm);overflow:hidden}
+.table-topbar{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ttl{font-size:15px;font-weight:700}.rb{background:var(--blue-lt);color:var(--blue);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-left:10px}
+table{width:100%;border-collapse:collapse}
+thead th{padding:11px 16px;text-align:left;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px;background:#f8fafb;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;transition:color .15s}
+thead th:hover{color:var(--blue)}thead th.sorted{color:var(--blue)}
+tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+tbody tr:last-child{border-bottom:none}tbody tr:hover{background:#f8faff}tbody tr:hover .ra{opacity:1}
+td{padding:14px 16px;vertical-align:middle}
+.sym{font-size:14px;font-weight:700}.stn{font-size:12px;color:var(--muted);margin-top:1px}
+.sc{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-top:4px;letter-spacing:.3px}
+.sc-Banking,.sc-Finance,.sc-Insurance{background:#eff6ff;color:#1d4ed8}
+.sc-IT{background:#f0fdf4;color:#15803d}
+.sc-Auto{background:#fff7ed;color:#c2410c}
+.sc-FMCG{background:#fdf4ff;color:#7e22ce}
+.sc-Pharma,.sc-Healthcare{background:#ecfdf5;color:#065f46}
+.sc-Energy{background:#fffbeb;color:#92400e}
+.sc-Infra{background:#f0f9ff;color:#0369a1}
+.sc-Power{background:#fefce8;color:#854d0e}
+.sc-Metal{background:#fafaf9;color:#44403c}
+.sc-Consumer,.sc-Cement{background:#f5f0ff;color:#6b21a8}
+.sc-Mining{background:#fefce8;color:#713f12}
+.sc-Conglomerate{background:#f8fafc;color:#334155}
+.sc-Defence{background:#fef2f2;color:#991b1b}
+.sc-Telecom{background:#f0f9ff;color:#0c4a6e}
+.tp{font-size:14px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.t52{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.rp{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.rp.up{background:var(--green-lt);color:var(--green)}.rp.dn{background:var(--red-lt);color:var(--red)}
+.pb{display:flex;align-items:center;gap:8px}
+.pt{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;min-width:60px}
+.pf{height:100%;border-radius:3px;transition:width .6s ease}
+.pv{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;min-width:38px}
+.ci{font-size:12px;font-family:'JetBrains Mono',monospace}
+.ci-l{color:var(--red)}.ci-s{color:var(--muted);margin:0 3px}.ci-h{color:var(--green)}
+.tv{font-size:12px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--gold)}
+.tvar{font-size:12px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--red)}
+.ra{color:var(--muted);opacity:0;transition:opacity .15s;font-size:16px}
+.state{padding:80px 24px;text-align:center}
+.spin{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .75s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.st{font-size:16px;font-weight:700;margin-bottom:6px}.ss2{font-size:13px;color:var(--muted)}
+.noR{padding:60px 24px;text-align:center;color:var(--muted);font-weight:600}
+.overlay{display:none;position:fixed;inset:0;background:rgba(14,23,38,.5);backdrop-filter:blur(6px);z-index:300;overflow-y:auto;padding:24px 16px}
+.overlay.open{display:flex;align-items:flex-start;justify-content:center}
+.modal{background:var(--white);border:1px solid var(--border);border-radius:20px;width:100%;max-width:900px;box-shadow:var(--shadow-lg);margin:auto;animation:sUp .25s ease}
+@keyframes sUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.mtop{padding:24px 28px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.msi{display:flex;align-items:center;gap:14px}
+.mav{width:48px;height:48px;border-radius:14px;background:var(--blue-lt);border:2px solid var(--blue-md);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--blue)}
+.mn{font-size:20px;font-weight:800;letter-spacing:-.3px}
+.mm{font-size:12px;color:var(--muted);margin-top:3px;font-family:'JetBrains Mono',monospace}
+.mrt{display:flex;align-items:flex-start;gap:12px}
+.mpb{text-align:right}
+.mc{font-size:26px;font-weight:800;font-family:'JetBrains Mono',monospace}
+.me{font-size:13px;font-weight:600;margin-top:3px}
+.cbtn{width:34px;height:34px;border-radius:var(--rsm);border:1.5px solid var(--border);background:#f8fafc;color:var(--muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.cbtn:hover{background:var(--red-lt);color:var(--red);border-color:#fca5a5}
+.qm{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+.qi{background:var(--white);padding:14px 16px}
+.ql{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.qv{font-size:15px;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1}
+.qsu{font-size:10px;color:var(--muted);margin-top:3px}
+.exrow{padding:16px 28px;border-bottom:1px solid var(--border);background:#f8fafb}
+.exbtn{display:inline-flex;align-items:center;gap:8px;background:var(--white);border:1.5px solid var(--blue-md);color:var(--blue);padding:9px 18px;border-radius:var(--rsm);font-size:13px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:all .15s;box-shadow:var(--shadow-sm)}
+.exbtn:hover{background:var(--blue-lt);box-shadow:var(--shadow-md)}
+.chev{transition:transform .3s;display:inline-block}
+.exbtn.open .chev{transform:rotate(180deg)}
+.fdash{display:none;padding:24px 28px 28px}
+.fdash.open{display:block}
+.dst{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:14px;margin-top:20px}
+.dst:first-child{margin-top:0}
+.c2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cbox{background:#f8fafb;border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.cbox.full{grid-column:1/-1}
+.cbt{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:12px}
+.cw{position:relative}.cw.h200{height:200px}.cw.h240{height:240px}
+.prows{}
+.pr{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.pr:last-child{border-bottom:none}
+.prl{font-size:12px;color:var(--text2);font-weight:500;flex:1}
+.prt{flex:2;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.prf{height:100%;border-radius:3px}
+.prn{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;min-width:44px;text-align:right}
+.s3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.sbox{border-radius:var(--r);padding:16px;text-align:center}
+.sbox.bull{background:var(--green-lt);border:1px solid #a7f3d0}
+.sbox.base{background:var(--blue-lt);border:1px solid var(--blue-md)}
+.sbox.bear{background:var(--red-lt);border:1px solid #fca5a5}
+.slb{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.slb.bull{color:var(--green)}.slb.base{color:var(--blue)}.slb.bear{color:var(--red)}
+.spv{font-size:20px;font-weight:800;font-family:'JetBrains Mono',monospace}
+.spr{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-top:4px}
+.mfoot{padding:12px 28px;border-top:1px solid var(--border);background:#f8fafb;border-radius:0 0 20px 20px;display:flex;align-items:center;justify-content:space-between}
+.mft{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.mfb{font-size:11px;font-weight:700;color:var(--blue)}
+footer{background:var(--white);border-top:1px solid var(--border);padding:24px 40px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.fbrand{font-size:14px;font-weight:700}.fbrand span{color:var(--blue)}
+.ftext{font-size:12px;color:var(--muted)}
+.disc{background:#fffbeb;border:1px solid #fde68a;border-radius:var(--rsm);padding:10px 16px;font-size:11px;color:var(--gold);max-width:600px;margin:20px auto 0;text-align:center}
+@media(max-width:1024px){.stats-grid{grid-template-columns:repeat(3,1fr)}.qm{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:768px){.navbar,.page,.hero,footer{padding-left:16px;padding-right:16px}.stats-grid{grid-template-columns:repeat(2,1fr)}.hero-stats,.nav-links{display:none}.c2,.s3{grid-template-columns:1fr}.cbox.full{grid-column:1}.qm{grid-template-columns:repeat(2,1fr)}.hm{display:none}}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="header-left">
-    <h1>HDFC Bank Ltd — Monte Carlo Simulation</h1>
-    <p>NSE: HDFCBANK &nbsp;·&nbsp; 10,000 simulations &nbsp;·&nbsp; 252-day horizon &nbsp;·&nbsp; Last updated: 01 Apr 2026, 14:23 IST</p>
+<nav class="navbar">
+  <a class="nav-brand" href="#">
+    <div class="nav-logo-box">QE</div>
+    <div><div class="nav-name">Quant<span>Edge</span> Analytics</div><div class="nav-tagline">Quantitative Stock Intelligence</div></div>
+  </a>
+  <div class="nav-center">
+    <div class="nav-links">
+      <button class="nav-link active">Nifty 50 Dashboard</button>
+      <button class="nav-link" onclick="alert('Coming soon!')">Indices</button>
+      <button class="nav-link" onclick="alert('Coming soon!')">Screener</button>
+      <button class="nav-link" onclick="alert('Coming soon!')">About</button>
+    </div>
   </div>
-  <div class="price-badge">
-    <div class="label">Current Price</div>
-    <div class="value">₹742.25</div>
+  <div class="nav-right">
+    <div class="live-badge"><div class="live-dot"></div>Live</div>
+    <div class="nav-updated" id="navUpd">—</div>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-in">
+    <div class="hero-text">
+      <h1>Nifty 50 <span>Probabilistic</span> Intelligence</h1>
+      <p>Monte Carlo simulations across all Nifty 50 stocks — risk metrics, price projections and scenario analysis, updated daily.</p>
+    </div>
+    <div class="hero-stats">
+      <div class="hs"><div class="val">50</div><div class="lbl">Stocks Tracked</div></div>
+      <div class="hs"><div class="val" id="hBull">—</div><div class="lbl">Bullish Today</div></div>
+      <div class="hs"><div class="val" id="hRet">—</div><div class="lbl">Avg Expected Return</div></div>
+      <div class="hs"><div class="val">252</div><div class="lbl">Day Horizon</div></div>
+    </div>
   </div>
 </div>
 
-
-
-<div class="main">
-
-  <!-- Metric Cards -->
-  <div class="metrics-grid">
-    <div class="metric">
-      <div class="m-label">Expected Price</div>
-      <div class="m-value blue">₹827</div>
-      <div class="m-sub green">+11.4% expected return</div>
+<div class="page">
+  <div class="controls">
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8a9ab5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" id="srch" placeholder="Search by name, symbol or sector...">
     </div>
-    <div class="metric">
-      <div class="m-label">Best Case (95th pct)</div>
-      <div class="m-value green">₹1,279</div>
-      <div class="m-sub green">+72.4% upside</div>
+    <div class="chips">
+      <button class="chip active" data-s="all">All</button>
+      <button class="chip" data-s="Banking">Banking</button>
+      <button class="chip" data-s="IT">IT</button>
+      <button class="chip" data-s="Auto">Auto</button>
+      <button class="chip" data-s="FMCG">FMCG</button>
+      <button class="chip" data-s="Pharma">Pharma</button>
+      <button class="chip" data-s="Energy">Energy</button>
     </div>
-    <div class="metric">
-      <div class="m-label">Worst Case (5th pct)</div>
-      <div class="m-value red">₹494</div>
-      <div class="m-sub red">-33.5% downside</div>
-    </div>
-    <div class="metric">
-      <div class="m-label">VaR 95%</div>
-      <div class="m-value red">₹249</div>
-      <div class="m-sub muted" style="color:var(--muted)">33.5% of investment</div>
-    </div>
-    <div class="metric">
-      <div class="m-label">P(Price Goes Up)</div>
-      <div class="m-value green">59.2%</div>
-      <div class="m-sub" style="color:var(--muted)">probability of profit</div>
-    </div>
-    <div class="metric">
-      <div class="m-label">Annual Volatility</div>
-      <div class="m-value gold">29.3%</div>
-      <div class="m-sub" style="color:var(--muted)">rolling EWMA</div>
-    </div>
+    <select class="sort-sel" id="sortSel">
+      <option value="expected_return_pct">Expected Return ↓</option>
+      <option value="prob_up">P(Up) ↓</option>
+      <option value="price">Price ↓</option>
+      <option value="sigma_annual">Volatility ↓</option>
+      <option value="var_95">VaR ↓</option>
+      <option value="name">Name A–Z</option>
+    </select>
   </div>
 
-  <!-- Charts Row 1 -->
-  <div class="charts-grid">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="si" style="background:#eff4ff">📊</div><div class="sl">Stocks</div><div class="sv" style="color:var(--blue)" id="sT">—</div><div class="ss">Nifty 50</div></div>
+    <div class="stat-card"><div class="si" style="background:var(--green-lt)">📈</div><div class="sl">Avg Return</div><div class="sv" id="sR">—</div><div class="ss">252-day horizon</div></div>
+    <div class="stat-card"><div class="si" style="background:var(--green-lt)">🐂</div><div class="sl">Bullish</div><div class="sv" style="color:var(--green)" id="sB">—</div><div class="ss">P(↑) above 55%</div></div>
+    <div class="stat-card"><div class="si" style="background:var(--blue-lt)">🏆</div><div class="sl">Top Pick</div><div class="sv" style="color:var(--blue);font-size:16px" id="sTk">—</div><div class="ss" id="sTr">—</div></div>
+    <div class="stat-card"><div class="si" style="background:var(--gold-lt)">⚡</div><div class="sl">Avg Volatility</div><div class="sv" style="color:var(--gold)" id="sV">—</div><div class="ss">Annual EWMA σ</div></div>
+  </div>
 
-    <!-- Price Paths -->
-    <div class="chart-card full">
-      <div class="chart-title">Simulated Price Paths — Percentile Fan</div>
-      <div class="chart-wrap tall">
-        <canvas id="pathsChart"></canvas>
-      </div>
+  <div class="table-card">
+    <div class="table-topbar">
+      <div style="display:flex;align-items:center"><span class="ttl">All Stocks</span><span class="rb" id="rb">—</span></div>
+      <div style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace" id="tupd">—</div>
     </div>
-
-    <!-- Histogram -->
-    <div class="chart-card">
-      <div class="chart-title">Terminal Price Distribution (Day 252)</div>
-      <div class="chart-wrap">
-        <canvas id="histChart"></canvas>
-      </div>
-    </div>
-
-    <!-- Scenarios -->
-    <div class="chart-card">
-      <div class="chart-title">Scenario Analysis — Bull / Base / Bear</div>
-      <div class="chart-wrap">
-        <canvas id="scenChart"></canvas>
-      </div>
-    </div>
-
-    <!-- Probabilities -->
-    <div class="chart-card">
-      <div class="chart-title">Probability Breakdown</div>
-      <div style="margin-top: 8px;">
-        <div class="prob-row">
-          <span class="prob-label">Price goes up (any gain)</span>
-          <div class="prob-bar-wrap"><div class="prob-bar" style="width:59.2%; background:var(--green);"></div></div>
-          <span class="prob-val green">59.2%</span>
-        </div>
-        <div class="prob-row">
-          <span class="prob-label">Price gains more than +10%</span>
-          <div class="prob-bar-wrap"><div class="prob-bar" style="width:46.1%; background:var(--blue);"></div></div>
-          <span class="prob-val blue">46.1%</span>
-        </div>
-        <div class="prob-row">
-          <span class="prob-label">Price stays flat (±5%)</span>
-          <div class="prob-bar-wrap"><div class="prob-bar" style="width:26.1%; background:var(--gold);"></div></div>
-          <span class="prob-val gold">26.1%</span>
-        </div>
-        <div class="prob-row">
-          <span class="prob-label">Price drops more than -10%</span>
-          <div class="prob-bar-wrap"><div class="prob-bar" style="width:27.8%; background:var(--red);"></div></div>
-          <span class="prob-val red">27.8%</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Scenario Table -->
-    <div class="chart-card">
-      <div class="chart-title">Scenario Summary</div>
-      <table class="scenario-table">
-        <thead>
-          <tr><th>Scenario</th><th>Median Price</th><th>Return</th><th>Confidence</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><span class="badge badge-green">Bull</span></td>
-            <td class="green">₹830</td>
-            <td class="green">+11.8%</td>
-            <td style="color:var(--muted)">Optimistic</td>
-          </tr>
-          <tr>
-            <td><span class="badge badge-blue">Base</span></td>
-            <td class="blue">₹806</td>
-            <td class="green">+8.6%</td>
-            <td style="color:var(--muted)">Most likely</td>
-          </tr>
-          <tr>
-            <td><span class="badge badge-red">Bear</span></td>
-            <td class="red">₹746</td>
-            <td class="red">+0.5%</td>
-            <td style="color:var(--muted)">Pessimistic</td>
-          </tr>
-        </tbody>
+    <div id="stL" class="state"><div class="spin"></div><div class="st">Fetching simulation data</div><div class="ss2">Loading Monte Carlo results for all 50 stocks…</div></div>
+    <div id="stE" class="state" style="display:none"><div style="font-size:32px;margin-bottom:12px">⚠️</div><div class="st">Could not load data</div><div class="ss2">Please refresh the page.</div></div>
+    <div id="tWrap" style="display:none;overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th style="width:42px">#</th>
+          <th>Stock</th>
+          <th data-k="price">Price</th>
+          <th data-k="expected_return_pct">E[Return]</th>
+          <th data-k="ci_5" class="hm">Range (5th–95th)</th>
+          <th data-k="prob_up">P(↑)</th>
+          <th data-k="sigma_annual" class="hm">Volatility</th>
+          <th data-k="var_95" class="hm">VaR 95%</th>
+          <th style="width:32px"></th>
+        </tr></thead>
+        <tbody id="tBody"></tbody>
       </table>
-
-      <div style="margin-top: 20px;">
-        <div class="chart-title">Rolling Volatility (63-day)</div>
-        <div class="chart-wrap" style="height:130px; margin-top:10px;">
-          <canvas id="volChart"></canvas>
-        </div>
-      </div>
+      <div id="noR" class="noR" style="display:none">No stocks match your search.</div>
     </div>
-
   </div>
+  <div class="disc">⚠️ For educational and research purposes only. Not financial advice. Past simulations do not guarantee future returns.</div>
 </div>
 
-<div class="footer">
-  HDFC Bank Monte Carlo System &nbsp;·&nbsp; GBM + Student-t fat tails + EWMA volatility &nbsp;·&nbsp; Generated 01 Apr 2026, 14:23 IST
-  <br>This is a quantitative model output, not financial advice.
+<footer>
+  <div class="fbrand">Quant<span>Edge</span> Analytics</div>
+  <div class="ftext">Monte Carlo · GBM + Student-t · Rolling EWMA Volatility · Updated Daily</div>
+  <div class="ftext" id="fUpd">—</div>
+</footer>
+
+<div class="overlay" id="ov" onclick="if(event.target===this)closeM()">
+<div class="modal" id="modal">
+  <div class="mtop">
+    <div class="msi">
+      <div class="mav" id="mAv">—</div>
+      <div><div class="mn" id="mNm">—</div><div class="mm" id="mMt">—</div></div>
+    </div>
+    <div class="mrt">
+      <div class="mpb"><div class="mc" id="mPr">—</div><div class="me" id="mEx">—</div></div>
+      <button class="cbtn" onclick="closeM()">✕</button>
+    </div>
+  </div>
+  <div class="qm">
+    <div class="qi"><div class="ql">Expected Price</div><div class="qv" id="qM" style="color:var(--blue)">—</div><div class="qsu" id="qMr">—</div></div>
+    <div class="qi"><div class="ql">Best Case (95th)</div><div class="qv" id="q95" style="color:var(--green)">—</div><div class="qsu" id="q95r">—</div></div>
+    <div class="qi"><div class="ql">Worst Case (5th)</div><div class="qv" id="q5" style="color:var(--red)">—</div><div class="qsu" id="q5r">—</div></div>
+    <div class="qi"><div class="ql">VaR 95%</div><div class="qv" id="qV" style="color:var(--red)">—</div><div class="qsu">max likely loss</div></div>
+    <div class="qi"><div class="ql">P(Price Up)</div><div class="qv" id="qP">—</div><div class="qsu">probability of profit</div></div>
+    <div class="qi"><div class="ql">Annual Volatility</div><div class="qv" id="qVl" style="color:var(--gold)">—</div><div class="qsu">rolling EWMA σ</div></div>
+  </div>
+  <div class="exrow">
+    <button class="exbtn" id="exBtn" onclick="toggleEx()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      View Full Dashboard — Charts, Scenarios &amp; More
+      <span class="chev">▾</span>
+    </button>
+  </div>
+  <div class="fdash" id="fDash">
+    <div class="dst">Price Path Simulation</div>
+    <div class="cbox full"><div class="cbt">Simulated Price Paths — 5th / Median / 95th Percentile</div><div class="cw h240"><canvas id="pC"></canvas></div></div>
+    <div class="dst">Distribution &amp; Probabilities</div>
+    <div class="c2">
+      <div class="cbox"><div class="cbt">Terminal Price Distribution</div><div class="cw h200"><canvas id="hC"></canvas></div></div>
+      <div class="cbox"><div class="cbt">Probability Breakdown</div><div class="prows" id="pRows"></div></div>
+    </div>
+    <div class="dst">Scenario Analysis</div>
+    <div class="s3" id="sGrid"></div>
+  </div>
+  <div class="mfoot"><div class="mft" id="mFt">—</div><div class="mfb">QuantEdge Analytics</div></div>
+</div>
 </div>
 
 <script>
-const days = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49, 51, 53, 55, 57, 59, 61, 63, 65, 67, 69, 71, 73, 75, 77, 79, 81, 83, 85, 87, 89, 91, 93, 95, 97, 99, 101, 103, 105, 107, 109, 111, 113, 115, 117, 119, 121, 123, 125, 127, 129, 131, 133, 135, 137, 139, 141, 143, 145, 147, 149, 151, 153, 155, 157, 159, 161, 163, 165, 167, 169, 171, 173, 175, 177, 179, 181, 183, 185, 187, 189, 191, 193, 195, 197, 199, 201, 203, 205, 207, 209, 211, 213, 215, 217, 219, 221, 223, 225, 227, 229, 231, 233, 235, 237, 239, 241, 243, 245, 247, 249, 251];
-const p5   = [721.38, 705.53, 695.02, 687.53, 680.11, 673.36, 668.08, 663.76, 658.19, 653.46, 650.42, 646.14, 642.08, 638.22, 636.26, 633.77, 629.79, 625.39, 623.59, 620.57, 618.49, 615.06, 612.04, 611.53, 607.66, 604.81, 603.37, 601.48, 598.5, 597.2, 595.88, 593.9, 590.22, 588.97, 586.98, 584.84, 582.4, 581.86, 580.29, 578.19, 577.13, 575.77, 575.16, 573.05, 572.36, 569.85, 569.39, 567.54, 566.36, 563.7, 563.56, 561.71, 560.57, 559.54, 557.23, 555.82, 554.59, 554.96, 552.83, 551.28, 550.52, 548.34, 547.24, 546.69, 545.75, 543.76, 542.25, 540.13, 539.18, 538.58, 537.24, 535.46, 536.08, 535.37, 534.49, 532.68, 531.31, 530.55, 529.38, 527.17, 526.47, 526.75, 524.81, 523.53, 521.0, 519.85, 519.93, 521.03, 519.95, 520.7, 519.38, 516.96, 516.31, 514.28, 514.16, 513.83, 512.01, 512.88, 510.43, 510.15, 511.12, 509.04, 507.61, 507.16, 504.99, 503.41, 503.37, 504.52, 502.22, 503.53, 499.9, 500.54, 499.91, 498.17, 496.51, 497.38, 496.35, 496.9, 495.97, 494.77, 494.51, 495.26, 495.12, 494.3, 493.21, 493.77];
-const p25  = [734.9, 728.42, 724.18, 719.97, 717.78, 715.51, 713.82, 711.23, 709.63, 707.8, 706.43, 703.98, 702.4, 700.9, 699.73, 699.43, 697.68, 696.73, 695.51, 693.6, 692.8, 692.42, 692.15, 691.33, 689.89, 688.87, 687.37, 686.35, 685.06, 683.99, 683.77, 683.64, 683.51, 680.9, 681.97, 681.01, 680.45, 679.95, 679.49, 679.14, 678.04, 676.86, 675.1, 675.41, 674.98, 674.14, 673.86, 673.48, 673.4, 673.26, 673.29, 672.04, 671.37, 671.85, 671.29, 671.34, 669.72, 669.62, 670.25, 670.59, 669.05, 668.05, 667.17, 668.25, 668.06, 666.75, 666.07, 666.1, 666.44, 666.18, 665.02, 664.47, 663.42, 662.36, 661.79, 660.8, 661.6, 660.99, 660.53, 660.92, 660.73, 659.86, 659.41, 659.25, 659.09, 658.76, 658.72, 658.55, 658.31, 658.95, 659.35, 658.96, 658.73, 659.3, 658.55, 657.62, 657.57, 656.67, 655.21, 655.94, 655.1, 656.46, 656.89, 657.57, 657.21, 657.18, 656.72, 655.15, 655.11, 653.63, 653.79, 653.23, 651.57, 651.65, 650.78, 651.63, 651.0, 651.93, 649.85, 649.68, 650.61, 650.85, 651.88, 651.63, 650.54, 650.26];
-const p50  = [742.54, 743.07, 743.41, 743.64, 744.04, 744.82, 745.16, 745.56, 746.2, 745.86, 746.08, 747.01, 746.65, 747.8, 747.79, 748.33, 748.9, 750.39, 749.54, 750.11, 751.47, 751.39, 752.05, 752.42, 752.81, 752.82, 752.72, 753.46, 754.12, 754.71, 754.75, 756.31, 755.48, 756.07, 756.66, 756.76, 757.69, 757.35, 758.57, 759.23, 758.68, 759.16, 758.87, 759.42, 760.08, 761.27, 761.4, 761.78, 762.27, 762.7, 762.78, 763.06, 764.15, 763.9, 765.02, 766.37, 766.0, 765.84, 766.85, 766.4, 767.06, 768.33, 769.29, 769.22, 769.3, 769.9, 771.25, 769.79, 769.65, 770.94, 770.33, 770.71, 772.42, 772.6, 773.15, 773.23, 772.61, 772.99, 774.94, 775.27, 775.16, 776.07, 776.19, 776.26, 776.89, 777.1, 777.69, 778.75, 778.61, 778.8, 779.61, 779.78, 779.95, 781.01, 782.76, 782.78, 781.19, 782.06, 782.74, 783.05, 782.83, 784.42, 784.76, 786.17, 785.37, 785.97, 786.56, 788.24, 788.4, 788.87, 789.18, 788.68, 789.7, 789.58, 789.05, 790.33, 790.49, 792.1, 791.5, 792.34, 791.29, 791.35, 793.03, 794.44, 793.83, 794.03];
-const p75  = [750.37, 757.83, 763.08, 767.48, 771.4, 775.17, 779.21, 782.0, 785.1, 787.93, 790.26, 792.44, 795.03, 796.8, 799.3, 802.55, 805.3, 806.2, 809.63, 811.25, 813.05, 814.84, 816.77, 820.44, 821.54, 824.17, 824.25, 827.21, 828.39, 830.42, 833.7, 836.07, 838.1, 839.31, 840.64, 841.86, 843.4, 843.9, 845.79, 847.72, 849.9, 850.23, 852.94, 853.94, 856.3, 857.53, 859.18, 859.97, 860.92, 862.05, 864.46, 866.71, 866.66, 868.3, 871.4, 872.58, 874.67, 875.47, 877.12, 878.16, 879.93, 882.35, 882.52, 884.07, 885.44, 887.26, 887.39, 889.57, 891.75, 890.87, 893.8, 894.97, 897.65, 899.79, 901.31, 900.61, 901.29, 902.1, 902.18, 905.72, 906.68, 906.99, 908.44, 908.61, 911.98, 910.95, 913.45, 913.57, 916.25, 917.81, 918.43, 920.39, 922.04, 923.4, 924.99, 925.78, 926.95, 928.61, 929.73, 929.32, 929.2, 932.75, 935.59, 933.42, 936.15, 937.44, 938.51, 939.18, 940.24, 941.49, 943.25, 945.32, 947.62, 948.64, 950.79, 950.95, 952.53, 954.42, 955.42, 954.39, 955.54, 956.21, 958.78, 961.28, 962.74, 964.79];
-const p95  = [764.93, 782.01, 793.57, 804.69, 813.92, 822.65, 830.84, 838.56, 846.59, 852.39, 859.57, 865.4, 872.08, 876.9, 883.62, 889.47, 894.17, 899.48, 902.97, 909.15, 911.9, 917.23, 922.09, 926.61, 930.91, 934.21, 939.5, 946.24, 953.24, 955.89, 961.14, 964.83, 966.52, 969.0, 975.49, 980.15, 982.2, 988.02, 992.12, 997.37, 999.37, 1001.8, 1005.56, 1009.17, 1015.19, 1019.29, 1018.3, 1021.57, 1024.11, 1028.84, 1032.35, 1033.61, 1039.41, 1042.52, 1049.07, 1053.35, 1056.5, 1055.68, 1059.02, 1064.3, 1070.22, 1073.63, 1074.52, 1077.58, 1081.82, 1084.54, 1088.35, 1092.26, 1090.96, 1096.16, 1098.71, 1101.93, 1104.6, 1110.13, 1106.4, 1115.1, 1118.22, 1122.68, 1121.46, 1129.21, 1127.71, 1136.89, 1137.7, 1140.4, 1144.55, 1145.59, 1151.14, 1153.56, 1155.73, 1161.29, 1165.49, 1165.28, 1171.92, 1175.5, 1180.03, 1185.32, 1189.94, 1193.02, 1194.86, 1198.36, 1198.93, 1202.05, 1206.4, 1205.71, 1206.05, 1211.42, 1217.29, 1221.58, 1222.99, 1226.72, 1228.32, 1234.02, 1237.17, 1236.13, 1241.27, 1251.5, 1252.31, 1254.87, 1261.35, 1260.5, 1264.77, 1269.48, 1273.04, 1275.36, 1279.92, 1279.25];
-const bullM = [742.38, 743.51, 744.5, 745.05, 745.88, 745.51, 746.48, 747.84, 746.95, 747.98, 748.7, 749.65, 751.21, 752.35, 752.93, 751.09, 754.01, 753.89, 754.38, 758.06, 759.22, 757.21, 757.23, 757.11, 759.14, 758.26, 759.58, 757.36, 760.09, 762.04, 764.36, 762.76, 762.12, 761.72, 763.29, 763.16, 762.15, 764.25, 767.52, 768.71, 768.15, 768.55, 770.73, 772.27, 773.34, 772.61, 776.88, 777.04, 775.03, 778.13, 778.21, 777.26, 776.72, 777.79, 780.57, 782.27, 786.83, 784.39, 782.21, 780.08, 781.97, 783.17, 783.8, 785.33, 787.81, 788.01, 785.26, 784.99, 787.44, 788.84, 792.79, 790.41, 791.91, 795.08, 792.18, 793.97, 794.12, 798.01, 798.74, 801.94, 802.95, 800.98, 803.15, 803.86, 805.24, 804.03, 803.72, 802.67, 803.34, 804.73, 800.19, 802.77, 804.27, 806.27, 805.13, 804.45, 807.9, 812.38, 812.46, 812.0, 812.7, 812.12, 813.13, 814.33, 816.3, 818.27, 818.49, 818.25, 821.55, 822.06, 822.65, 821.24, 825.56, 823.52, 827.83, 825.42, 827.32, 828.93, 825.29, 828.8, 824.94, 826.67, 832.62, 829.65, 833.58, 831.1];
-const baseM = [742.05, 742.98, 744.25, 742.27, 743.13, 742.62, 741.14, 739.55, 741.36, 740.34, 742.16, 742.14, 745.39, 744.22, 743.35, 745.52, 745.79, 747.03, 745.98, 748.88, 749.69, 747.63, 749.38, 747.49, 748.27, 748.99, 748.09, 750.68, 751.99, 752.58, 753.18, 751.97, 753.74, 756.25, 757.97, 758.71, 757.66, 758.84, 758.89, 762.42, 765.16, 762.9, 761.06, 765.34, 766.61, 767.83, 767.15, 769.56, 766.52, 766.05, 764.52, 765.91, 765.38, 764.16, 766.5, 767.14, 772.95, 768.85, 770.37, 772.26, 774.58, 772.83, 772.11, 769.71, 770.52, 773.48, 771.86, 774.87, 781.23, 776.62, 781.14, 777.86, 782.29, 782.86, 781.92, 780.92, 783.76, 782.83, 779.23, 783.96, 782.11, 785.02, 785.48, 786.65, 789.8, 790.98, 798.33, 799.76, 795.08, 797.22, 799.12, 792.99, 793.92, 789.49, 790.78, 787.93, 787.48, 791.31, 793.7, 790.56, 795.49, 794.77, 796.75, 801.44, 796.57, 799.26, 798.04, 797.98, 802.5, 800.95, 796.94, 798.81, 800.35, 797.64, 795.06, 798.51, 804.15, 800.51, 801.25, 800.46, 796.89, 805.66, 803.1, 800.65, 803.88, 801.97];
-const bearM = [742.65, 743.21, 744.93, 741.39, 740.92, 740.57, 738.7, 736.18, 743.03, 739.11, 739.33, 740.05, 737.18, 739.99, 740.89, 739.63, 738.3, 738.68, 738.82, 742.34, 743.56, 738.0, 743.68, 740.73, 740.15, 744.73, 740.96, 739.93, 744.01, 744.94, 746.73, 747.6, 748.48, 746.92, 749.53, 748.87, 748.29, 744.74, 748.89, 750.57, 752.14, 748.27, 748.66, 751.31, 754.73, 752.02, 753.99, 750.75, 753.09, 753.23, 749.99, 745.75, 748.95, 749.18, 750.74, 752.0, 756.97, 756.7, 748.77, 751.58, 755.08, 756.34, 754.01, 753.12, 750.5, 758.16, 757.13, 754.94, 754.23, 752.44, 749.44, 753.34, 750.61, 752.49, 748.11, 748.02, 744.23, 742.08, 746.35, 744.79, 745.61, 743.31, 742.7, 743.5, 743.57, 742.24, 747.89, 751.27, 747.19, 745.11, 750.51, 747.01, 748.97, 753.49, 746.86, 749.02, 753.94, 752.49, 749.7, 751.06, 745.78, 744.55, 744.78, 746.75, 751.45, 751.64, 757.45, 752.74, 751.95, 757.01, 752.67, 747.29, 752.23, 756.29, 756.33, 759.86, 748.94, 745.96, 751.84, 754.15, 754.7, 752.59, 744.99, 753.75, 750.32, 749.57];
-const histL = ["290", "325", "360", "394", "429", "464", "498", "533", "568", "602", "637", "671", "706", "741", "775", "810", "845", "879", "914", "949", "983", "1018", "1052", "1087", "1122", "1156", "1191", "1226", "1260", "1295", "1330", "1364", "1399", "1433", "1468", "1503", "1537", "1572", "1607", "1641", "1676", "1711", "1745", "1780", "1814", "1849", "1884", "1918", "1953", "1988", "2022", "2057", "2092", "2126", "2161", "2195", "2230", "2265", "2299", "2334"];
-const histD = [10, 15, 29, 75, 120, 175, 259, 359, 480, 504, 533, 589, 608, 592, 637, 587, 544, 510, 471, 401, 385, 332, 297, 271, 207, 156, 140, 123, 86, 83, 65, 50, 60, 44, 35, 36, 25, 14, 23, 15, 13, 5, 5, 6, 4, 4, 2, 5, 1, 2, 1, 0, 2, 0, 1, 0, 1, 1, 0, 2];
-const rvDates = ["May 2016", "Jun 2016", "Jul 2016", "Aug 2016", "Sep 2016", "Oct 2016", "Nov 2016", "Dec 2016", "Dec 2016", "Jan 2017", "Feb 2017", "Mar 2017", "Apr 2017", "May 2017", "Jun 2017", "Jul 2017", "Aug 2017", "Sep 2017", "Oct 2017", "Nov 2017", "Dec 2017", "Jan 2018", "Feb 2018", "Mar 2018", "Apr 2018", "May 2018", "Jun 2018", "Jul 2018", "Aug 2018", "Sep 2018", "Oct 2018", "Nov 2018", "Dec 2018", "Jan 2019", "Feb 2019", "Mar 2019", "Apr 2019", "May 2019", "Jun 2019", "Jul 2019", "Aug 2019", "Sep 2019", "Oct 2019", "Nov 2019", "Dec 2019", "Jan 2020", "Jan 2020", "Mar 2020", "Mar 2020", "May 2020", "Jun 2020", "Jul 2020", "Jul 2020", "Aug 2020", "Sep 2020", "Oct 2020", "Nov 2020", "Dec 2020", "Jan 2021", "Feb 2021", "Mar 2021", "Apr 2021", "May 2021", "Jun 2021", "Jul 2021", "Aug 2021", "Sep 2021", "Oct 2021", "Nov 2021", "Dec 2021", "Jan 2022", "Feb 2022", "Mar 2022", "Apr 2022", "May 2022", "Jun 2022", "Jul 2022", "Jul 2022", "Aug 2022", "Sep 2022", "Oct 2022", "Nov 2022", "Dec 2022", "Jan 2023", "Feb 2023", "Mar 2023", "Apr 2023", "May 2023", "Jun 2023", "Jul 2023", "Aug 2023", "Sep 2023", "Oct 2023", "Nov 2023", "Dec 2023", "Jan 2024", "Feb 2024", "Mar 2024", "Apr 2024", "May 2024", "Jun 2024", "Jul 2024", "Aug 2024", "Sep 2024", "Oct 2024", "Nov 2024", "Dec 2024", "Jan 2025", "Feb 2025", "Mar 2025", "Apr 2025", "May 2025", "Jun 2025", "Jul 2025", "Jul 2025", "Aug 2025", "Sep 2025", "Oct 2025", "Nov 2025", "Dec 2025", "Jan 2026", "Feb 2026", "Mar 2026"];
-const rvVals  = [17.79, 14.08, 14.97, 14.77, 14.23, 13.99, 13.98, 16.25, 15.26, 15.15, 14.77, 13.47, 15.08, 13.24, 13.73, 11.03, 12.34, 11.83, 13.32, 14.07, 14.29, 13.86, 14.44, 14.88, 16.75, 14.59, 18.61, 17.11, 17.37, 11.94, 15.63, 17.07, 18.78, 16.72, 15.21, 13.96, 13.6, 14.75, 17.68, 17.6, 17.9, 19.19, 28.45, 28.19, 25.47, 16.17, 14.37, 16.43, 54.36, 64.07, 68.9, 51.38, 41.02, 31.37, 25.68, 27.08, 27.0, 28.37, 25.23, 28.5, 30.51, 33.7, 31.15, 27.88, 22.79, 20.73, 16.12, 17.11, 17.54, 18.6, 19.77, 19.08, 26.78, 34.61, 37.92, 34.29, 32.41, 20.9, 17.98, 18.44, 20.01, 22.67, 20.35, 17.82, 16.82, 18.23, 17.88, 19.4, 17.94, 18.69, 14.48, 14.42, 15.03, 15.04, 16.86, 14.69, 25.27, 25.46, 26.41, 18.1, 23.2, 25.72, 26.36, 19.97, 18.17, 18.75, 20.1, 19.71, 18.7, 17.18, 19.07, 19.76, 20.51, 20.21, 15.29, 13.36, 11.43, 11.1, 11.24, 11.17, 12.23, 13.7, 21.87];
-const S0 = 742.25;
-const VaR95line = 493.6;
-
-Chart.defaults.color = '#8b949e';
-Chart.defaults.borderColor = '#30363d';
-Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
-
-// ── Price Paths Chart ──
-new Chart(document.getElementById('pathsChart'), {
-  type: 'line',
-  data: {
-    labels: days,
-    datasets: [
-      { label: '95th pct', data: p95, borderColor: '#3fb950', borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, fill: false },
-      { label: '75th pct', data: p75, borderColor: '#58a6ff', borderWidth: 0.5, pointRadius: 0, fill: '+1', backgroundColor: 'rgba(88,166,255,0.06)' },
-      { label: 'Median',   data: p50, borderColor: '#d29922', borderWidth: 2.5, pointRadius: 0, fill: false },
-      { label: '25th pct', data: p25, borderColor: '#58a6ff', borderWidth: 0.5, pointRadius: 0, fill: false },
-      { label: '5th pct',  data: p5,  borderColor: '#f85149', borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, fill: false },
-    ]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false, animation: false,
-    plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },
-    scales: {
-      x: { ticks: { maxTicksLimit: 10 }, grid: { color: '#21262d' } },
-      y: { ticks: { callback: v => '₹' + v.toLocaleString('en-IN') }, grid: { color: '#21262d' } }
-    }
-  }
-});
-
-// ── Histogram ──
-new Chart(document.getElementById('histChart'), {
-  type: 'bar',
-  data: {
-    labels: histL,
-    datasets: [{ label: 'Simulations', data: histD, backgroundColor: 'rgba(88,166,255,0.6)', borderColor: 'rgba(88,166,255,0.9)', borderWidth: 0.5 }]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false, animation: false,
-    plugins: {
-      legend: { display: false },
-      annotation: {}
-    },
-    scales: {
-      x: { ticks: { maxTicksLimit: 8, callback: (v, i) => '₹' + parseFloat(histL[i]).toLocaleString('en-IN', {maximumFractionDigits:0}) }, grid: { display: false } },
-      y: { ticks: { maxTicksLimit: 5 }, grid: { color: '#21262d' } }
-    }
-  }
-});
-
-// ── Scenarios ──
-new Chart(document.getElementById('scenChart'), {
-  type: 'line',
-  data: {
-    labels: days,
-    datasets: [
-      { label: 'Bull', data: bullM, borderColor: '#3fb950', borderWidth: 2, pointRadius: 0, fill: false },
-      { label: 'Base', data: baseM, borderColor: '#58a6ff', borderWidth: 2, pointRadius: 0, fill: false },
-      { label: 'Bear', data: bearM, borderColor: '#f85149', borderWidth: 2, pointRadius: 0, fill: false },
-    ]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false, animation: false,
-    plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },
-    scales: {
-      x: { ticks: { maxTicksLimit: 8 }, grid: { color: '#21262d' } },
-      y: { ticks: { callback: v => '₹' + v.toLocaleString('en-IN') }, grid: { color: '#21262d' } }
-    }
-  }
-});
-
-// ── Rolling Vol ──
-new Chart(document.getElementById('volChart'), {
-  type: 'line',
-  data: {
-    labels: rvDates,
-    datasets: [{ label: '63-day Vol', data: rvVals, borderColor: '#d29922', borderWidth: 1.5, pointRadius: 0, fill: true, backgroundColor: 'rgba(210,153,34,0.1)' }]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false, animation: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { ticks: { maxTicksLimit: 6, font: { size: 10 } }, grid: { color: '#21262d' } },
-      y: { ticks: { callback: v => v.toFixed(1) + '%', font: { size: 10 } }, grid: { color: '#21262d' } }
-    }
-  }
-});
+let all=[],filt=[],sk='expected_return_pct',sa=false,sec='all',cP=null,cH=null;
+async function load(){
+  try{
+    const r=await fetch('nifty50_data.json?t='+Date.now());
+    if(!r.ok)throw 0;
+    const d=await r.json();
+    ['navUpd','tupd','fUpd'].forEach(id=>document.getElementById(id).textContent='Updated: '+d.last_updated);
+    all=d.stocks;
+    heroStats(all);statCards(all);filter();
+    document.getElementById('stL').style.display='none';
+    document.getElementById('tWrap').style.display='block';
+  }catch(e){document.getElementById('stL').style.display='none';document.getElementById('stE').style.display='block';}
+}
+function heroStats(s){
+  const avg=s.reduce((a,x)=>a+x.expected_return_pct,0)/s.length;
+  document.getElementById('hBull').textContent=s.filter(x=>x.prob_up>0.55).length;
+  document.getElementById('hRet').textContent=(avg>=0?'+':'')+avg.toFixed(1)+'%';
+}
+function statCards(s){
+  const avg=s.reduce((a,x)=>a+x.expected_return_pct,0)/s.length;
+  const top=s.reduce((a,b)=>a.expected_return_pct>b.expected_return_pct?a:b);
+  const vol=s.reduce((a,x)=>a+x.sigma_annual,0)/s.length;
+  document.getElementById('sT').textContent=s.length;
+  document.getElementById('sR').textContent=(avg>=0?'+':'')+avg.toFixed(1)+'%';
+  document.getElementById('sR').style.color=avg>=0?'var(--green)':'var(--red)';
+  document.getElementById('sB').textContent=s.filter(x=>x.prob_up>0.55).length+' / '+s.length;
+  document.getElementById('sTk').textContent=top.symbol;
+  document.getElementById('sTr').textContent='+'+top.expected_return_pct.toFixed(1)+'% expected';
+  document.getElementById('sV').textContent=(vol*100).toFixed(1)+'%';
+}
+function filter(){
+  const q=document.getElementById('srch').value.toLowerCase();
+  filt=all.filter(s=>{
+    const ms=!q||s.name.toLowerCase().includes(q)||s.symbol.toLowerCase().includes(q)||s.sector.toLowerCase().includes(q);
+    return ms&&(sec==='all'||s.sector===sec);
+  });
+  filt.sort((a,b)=>{
+    let va=a[sk],vb=b[sk];
+    if(sk==='name'){va=va.toLowerCase();vb=vb.toLowerCase();}
+    return sa?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0);
+  });
+  renderT();
+  document.getElementById('rb').textContent=filt.length+' stocks';
+}
+function renderT(){
+  const tb=document.getElementById('tBody'),nr=document.getElementById('noR');
+  if(!filt.length){tb.innerHTML='';nr.style.display='block';return;}
+  nr.style.display='none';
+  tb.innerHTML=filt.map((s,i)=>{
+    const r=s.expected_return_pct,rs=(r>=0?'+':'')+r.toFixed(1)+'%',rc=r>=0?'up':'dn',ra=r>=0?'▲':'▼';
+    const pp=(s.prob_up*100).toFixed(0),pc=s.prob_up>0.55?'var(--green)':s.prob_up<0.45?'var(--red)':'var(--gold)';
+    return `<tr onclick="openM('${s.symbol}')" style="animation:fi .25s ${i*.015}s both">
+      <td style="color:var(--muted);font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600">${s.rank||i+1}</td>
+      <td><div class="sym">${s.symbol}</div><div class="stn">${s.name}</div><span class="sc sc-${s.sector.replace(/\s+/g,'')}">${s.sector}</span></td>
+      <td><div class="tp">₹${s.price.toLocaleString('en-IN')}</div><div class="t52">52W ₹${s.week52_low.toLocaleString('en-IN',{maximumFractionDigits:0})}–₹${s.week52_high.toLocaleString('en-IN',{maximumFractionDigits:0})}</div></td>
+      <td><span class="rp ${rc}">${ra} ${rs}</span></td>
+      <td class="hm"><span class="ci"><span class="ci-l">₹${s.ci_5.toLocaleString('en-IN',{maximumFractionDigits:0})}</span><span class="ci-s">–</span><span class="ci-h">₹${s.ci_95.toLocaleString('en-IN',{maximumFractionDigits:0})}</span></span></td>
+      <td><div class="pb"><div class="pt"><div class="pf" style="width:${pp}%;background:${pc}"></div></div><span class="pv" style="color:${pc}">${pp}%</span></div></td>
+      <td class="tv hm">${(s.sigma_annual*100).toFixed(1)}%</td>
+      <td class="tvar hm">₹${s.var_95.toLocaleString('en-IN',{maximumFractionDigits:0})}</td>
+      <td class="ra">›</td>
+    </tr>`;
+  }).join('');
+}
+function openM(sym){
+  const s=all.find(x=>x.symbol===sym);if(!s)return;
+  const r=s.expected_return_pct,rs=(r>=0?'+':'')+r.toFixed(1)+'%';
+  document.getElementById('mAv').textContent=s.symbol.slice(0,2);
+  document.getElementById('mNm').textContent=s.name;
+  document.getElementById('mMt').textContent=s.symbol+' · NSE · '+s.sector+' · '+s.n_simulations.toLocaleString()+' simulations';
+  document.getElementById('mPr').textContent='₹'+s.price.toLocaleString('en-IN');
+  document.getElementById('mEx').textContent='Expected '+rs+' over '+s.horizon_days+' trading days';
+  document.getElementById('mEx').style.color=r>=0?'var(--green)':'var(--red)';
+  document.getElementById('qM').textContent='₹'+s.mean_price.toLocaleString('en-IN');
+  document.getElementById('qMr').textContent=rs+' expected';
+  document.getElementById('q95').textContent='₹'+s.ci_95.toLocaleString('en-IN');
+  document.getElementById('q95r').textContent='+'+((s.ci_95/s.price-1)*100).toFixed(1)+'% upside';
+  document.getElementById('q5').textContent='₹'+s.ci_5.toLocaleString('en-IN');
+  document.getElementById('q5r').textContent=((s.ci_5/s.price-1)*100).toFixed(1)+'% downside';
+  document.getElementById('qV').textContent='₹'+s.var_95.toLocaleString('en-IN',{maximumFractionDigits:0});
+  document.getElementById('qP').textContent=(s.prob_up*100).toFixed(1)+'%';
+  document.getElementById('qP').style.color=s.prob_up>0.5?'var(--green)':'var(--red)';
+  document.getElementById('qVl').textContent=(s.sigma_annual*100).toFixed(1)+'%';
+  document.getElementById('mFt').textContent='52W High ₹'+s.week52_high.toLocaleString('en-IN')+' · Low ₹'+s.week52_low.toLocaleString('en-IN')+' · GBM + Student-t · EWMA σ';
+  document.getElementById('fDash').classList.remove('open');
+  document.getElementById('exBtn').classList.remove('open');
+  window._s=s;
+  document.getElementById('ov').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeM(){document.getElementById('ov').classList.remove('open');document.body.style.overflow='';}
+function toggleEx(){
+  const fd=document.getElementById('fDash'),eb=document.getElementById('exBtn');
+  if(fd.classList.contains('open')){fd.classList.remove('open');eb.classList.remove('open');}
+  else{fd.classList.add('open');eb.classList.add('open');buildCharts(window._s);}
+}
+function buildCharts(s){
+  if(cP){cP.destroy();cP=null;}if(cH){cH.destroy();cH=null;}
+  Chart.defaults.color='#8a9ab5';Chart.defaults.borderColor='#e8edf5';
+  Chart.defaults.font.family="'Plus Jakarta Sans',sans-serif";
+  const days=Array.from({length:s.p50_path.length},(_,i)=>(i+1)*5);
+  cP=new Chart(document.getElementById('pC'),{type:'line',data:{labels:days,datasets:[
+    {label:'95th',data:s.p95_path,borderColor:'#0b9e5e',borderWidth:1.5,pointRadius:0,borderDash:[5,3],fill:false},
+    {label:'Median',data:s.p50_path,borderColor:'#1a56db',borderWidth:2.5,pointRadius:0,fill:false},
+    {label:'5th',data:s.p5_path,borderColor:'#e02d3c',borderWidth:1.5,pointRadius:0,borderDash:[5,3],fill:false},
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{display:true,position:'top',labels:{boxWidth:12,font:{size:11}}}},
+    scales:{x:{ticks:{maxTicksLimit:8,font:{size:11}},grid:{color:'#f0f3f8'}},
+            y:{ticks:{callback:v=>'₹'+v.toLocaleString('en-IN'),font:{size:11}},grid:{color:'#f0f3f8'}}}}});
+  cH=new Chart(document.getElementById('hC'),{type:'bar',data:{labels:s.histogram.labels,
+    datasets:[{data:s.histogram.counts,backgroundColor:'rgba(26,86,219,.18)',borderColor:'rgba(26,86,219,.5)',borderWidth:1}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{maxTicksLimit:6,font:{size:11},callback:(v,i)=>'₹'+Math.round(s.histogram.labels[i]).toLocaleString('en-IN')},grid:{display:false}},
+            y:{ticks:{maxTicksLimit:4,font:{size:11}},grid:{color:'#f0f3f8'}}}}});
+  document.getElementById('pRows').innerHTML=[
+    {l:'Price increases (any gain)',v:s.prob_up,c:'var(--green)'},
+    {l:'Gains more than +10%',v:s.prob_10up,c:'#1a56db'},
+    {l:'Drops more than −10%',v:s.prob_10down,c:'var(--red)'},
+  ].map(p=>`<div class="pr"><span class="prl">${p.l}</span><div class="prt"><div class="prf" style="width:${(p.v*100).toFixed(1)}%;background:${p.c}"></div></div><span class="prn" style="color:${p.c}">${(p.v*100).toFixed(1)}%</span></div>`).join('');
+  document.getElementById('sGrid').innerHTML=[
+    {cls:'bull',lbl:'🐂 Bull Case',pr:s.bull_median},
+    {cls:'base',lbl:'📊 Base Case',pr:s.base_median},
+    {cls:'bear',lbl:'🐻 Bear Case',pr:s.bear_median},
+  ].map(x=>{const r=((x.pr/s.price-1)*100).toFixed(1);const clr=x.cls==='bear'?'var(--red)':x.cls==='bull'?'var(--green)':'var(--blue)';
+    return `<div class="sbox ${x.cls}"><div class="slb ${x.cls}">${x.lbl}</div><div class="spv">₹${x.pr.toLocaleString('en-IN',{maximumFractionDigits:0})}</div><div class="spr" style="color:${clr}">${r>=0?'+':''}${r}%</div></div>`;}).join('');
+}
+document.getElementById('srch').addEventListener('input',filter);
+document.getElementById('sortSel').addEventListener('change',e=>{sk=e.target.value;sa=sk==='name';filter();});
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));c.classList.add('active');sec=c.dataset.s;filter();
+}));
+document.querySelectorAll('thead th[data-k]').forEach(th=>th.addEventListener('click',()=>{
+  const k=th.dataset.k;sa=sk===k?!sa:false;sk=k;
+  document.querySelectorAll('thead th').forEach(t=>t.classList.remove('sorted'));th.classList.add('sorted');
+  document.getElementById('sortSel').value=k;filter();
+}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM();});
+load();
 </script>
 </body>
 </html>
