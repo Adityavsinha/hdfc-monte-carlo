@@ -14,7 +14,7 @@ env:
 jobs:
   simulate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
 
@@ -57,20 +57,17 @@ jobs:
           print("config.json created successfully")
           PYEOF
 
-      - name: Verify files exist
-        run: |
-          ls -la
-          test -f run_auto.py && echo "run_auto.py OK" || echo "MISSING run_auto.py"
-          test -f config.json && echo "config.json OK" || echo "MISSING config.json"
+      - name: Run Nifty 50 Monte Carlo simulation
+        run: python run_nifty50.py
 
-      - name: Run Monte Carlo simulation
+      - name: Run HDFC full simulation + Google sync
         run: python run_auto.py
 
-      - name: Prepare GitHub Pages
+      - name: Verify output
         run: |
-          mkdir -p docs
-          cp outputs/hdfc_dashboard.html docs/index.html
-          echo "Last updated: $(date)" > docs/last_updated.txt
+          test -f docs/nifty50_data.json && echo "nifty50_data.json OK" || echo "MISSING nifty50_data.json"
+          test -f docs/index.html        && echo "index.html OK"        || echo "MISSING index.html"
+          ls -lh docs/
 
       - name: Commit and push
         run: |
