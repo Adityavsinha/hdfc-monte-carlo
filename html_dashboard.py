@@ -1332,6 +1332,27 @@ setTimeout(() => {
   });
 }, 1000);
 
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCc5BTXmgK6zNg2dAWKNbk95swmJ6TXQG8",
+  authDomain: "quantedge-c5855.firebaseapp.com",
+  projectId: "quantedge-c5855",
+  storageBucket: "quantedge-c5855.firebasestorage.app",
+  messagingSenderId: "141320543192",
+  appId: "1:141320543192:web:b59e4d74d2d52478eaf0ad",
+  measurementId: "G-J2Y8L7C8H6"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 // ══════════════════════════════════════════════════
 //  UTILITIES
 // ══════════════════════════════════════════════════
