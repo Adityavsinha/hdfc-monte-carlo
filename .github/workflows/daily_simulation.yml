@@ -1,18 +1,19 @@
-name: HDFC Monte Carlo Daily Simulation
+name: QuantEdge Analytics — Daily Pipeline
 
 on:
   schedule:
-    - cron: '0 13 * * 1-5'
-  workflow_dispatch:
+    - cron: '0 13 * * 1-5'   # 6:30 PM IST every weekday
+  workflow_dispatch:           # Manual trigger from GitHub
 
 permissions:
   contents: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PYTHONUNBUFFERED: "1"
 
 jobs:
-  simulate:
+  quant_pipeline:
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -24,55 +25,50 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Set up Python
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
       - name: Install dependencies
         run: |
+          pip install --upgrade pip
           pip install yfinance pandas numpy scipy matplotlib openpyxl pyarrow
+          pip install statsmodels arch requests
           pip install google-auth google-auth-oauthlib google-auth-httplib2
-          pip install google-api-python-client gspread
+          pip install google-api-python-client
+          echo "✅ Dependencies installed"
 
-      - name: Setup Google credentials
+      - name: Verify structure
         run: |
-          echo '${{ secrets.GOOGLE_CREDS }}' > google_creds.json
-          echo '${{ secrets.GOOGLE_CLIENT_SECRET }}' > client_secret.json
+          ls -la scripts/
+          python -c "import yfinance, statsmodels, arch; print('All imports OK')"
 
-      - name: Create config
+      - name: Run QuantEdge daily pipeline
+        working-directory: scripts
         run: |
-          python - <<'PYEOF'
-          import json
-          config = {
-            "drive_folder_id": "${{ secrets.DRIVE_FOLDER_ID }}",
-            "spreadsheet_id": "${{ secrets.SPREADSHEET_ID }}",
-            "ticker": "HDFCBANK.NS",
-            "simulations": 10000,
-            "horizon_days": 252,
-            "auto_schedule": True
-          }
-          with open("config.json", "w") as f:
-              json.dump(config, f, indent=2)
-          print("config.json created successfully")
-          PYEOF
+          python run_pipeline.py
 
-      - name: Run Nifty 50 Monte Carlo simulation
-        run: python run_nifty50.py
-
-      - name: Run HDFC full simulation + Google sync
-        run: python run_auto.py
-
-      - name: Verify output
+      - name: Verify outputs
         run: |
-          test -f docs/nifty50_data.json && echo "nifty50_data.json OK" || echo "MISSING nifty50_data.json"
-          test -f docs/index.html        && echo "index.html OK"        || echo "MISSING index.html"
-          ls -lh docs/
+          echo "Output files:"
+          ls -lh docs/*.json 2>/dev/null || echo "No JSON files found"
+          test -f docs/metrics.json  && echo "✅ metrics.json OK"  || echo "❌ metrics.json MISSING"
+          test -f docs/summary.json  && echo "✅ summary.json OK"  || echo "❌ summary.json MISSING"
+          test -f docs/charts.json   && echo "✅ charts.json OK"   || echo "❌ charts.json MISSING"
 
-      - name: Commit and push
+      - name: Clean up old outputs (keep repo small)
         run: |
-          git config --global user.name "HDFC Bot"
-          git config --global user.email "bot@hdfc-monte-carlo.com"
+          # Remove any large files not needed in git
+          find . -name "*.log" -not -path "./.git/*" -delete
+          find . -name "__pycache__" -not -path "./.git/*" -exec rm -rf {} + 2>/dev/null || true
+          find . -name "*.pyc" -delete 2>/dev/null || true
+          echo "🧹 Cleanup done"
+
+      - name: Commit and push updated data
+        run: |
+          git config --global user.name "QuantEdge Bot"
+          git config --global user.email "bot@quantedgeanalytics.co.in"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git add docs/
           git stash
@@ -81,5 +77,6 @@ jobs:
           git stash pop
           git add docs/
           git diff --staged --quiet && echo "Nothing to commit" && exit 0
-          git commit -m "Auto update: $(date +'%d %b %Y %H:%M IST')"
+          git commit -m "📊 Daily update: $(date +'%d %b %Y %H:%M IST')"
           git push origin main
+          echo "✅ Data pushed to GitHub Pages"
