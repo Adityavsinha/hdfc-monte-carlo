@@ -169,6 +169,19 @@ def main():
             "market_cap": r.get("market_cap"), "pe_ratio": r.get("pe_ratio"),
             "beta_nifty": r.get("beta_nifty"), "rank": r["rank"],
             "mu_annual": r.get("mu_annual"), "score": r.get("score",0),
+            # Fields needed by modal quick metrics strip
+            "mean_price": r.get("mean_price"), "median_price": r.get("median_price"),
+            "ci_5": r.get("ci_5"), "ci_25": r.get("ci_25"),
+            "ci_75": r.get("ci_75"), "ci_95": r.get("ci_95"),
+            "n_simulations": r.get("n_simulations", 10000),
+            "horizon_days": r.get("horizon_days", 252),
+            "prob_10up": r.get("prob_10up"), "prob_20up": r.get("prob_20up"),
+            "prob_10down": r.get("prob_10down"),
+            "bull_median": r.get("bull_median"), "base_median": r.get("base_median"),
+            "bear_median": r.get("bear_median"),
+            "max_drawdown": r.get("max_drawdown"), "sortino": r.get("sortino"),
+            "calmar": r.get("calmar"), "cvar_95": r.get("cvar_95"),
+            "var_99": r.get("var_99"), "drift_method": r.get("drift_method",""),
         } for r in results]
     }
 
