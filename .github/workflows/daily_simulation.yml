@@ -2,8 +2,8 @@ name: QuantEdge Analytics — Daily Pipeline
 
 on:
   schedule:
-    - cron: '0 13 * * 1-5'   # 6:30 PM IST every weekday
-  workflow_dispatch:           # Manual trigger from GitHub
+    - cron: '0 13 * * 1-5'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -33,50 +33,52 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install yfinance pandas numpy scipy matplotlib openpyxl pyarrow
-          pip install statsmodels arch requests
-          pip install google-auth google-auth-oauthlib google-auth-httplib2
-          pip install google-api-python-client
-          echo "✅ Dependencies installed"
+          pip install yfinance pandas numpy scipy statsmodels arch requests
+          pip install matplotlib openpyxl pyarrow
+          echo "✅ All dependencies installed"
 
-      - name: Verify structure
+      - name: Verify scripts exist
         run: |
-          ls -la scripts/
-          python -c "import yfinance, statsmodels, arch; print('All imports OK')"
+          echo "Files in scripts/:"
+          ls -la scripts/ 2>/dev/null || echo "scripts/ folder not found!"
+          test -f scripts/run_pipeline.py  && echo "✅ run_pipeline.py found"  || echo "❌ run_pipeline.py MISSING - upload it first!"
+          test -f scripts/quant_engine.py  && echo "✅ quant_engine.py found"  || echo "❌ quant_engine.py MISSING"
+          test -f scripts/data_ingestion.py && echo "✅ data_ingestion.py found" || echo "❌ data_ingestion.py MISSING"
+          test -f scripts/config.py        && echo "✅ config.py found"         || echo "❌ config.py MISSING"
 
       - name: Run QuantEdge daily pipeline
         working-directory: scripts
         run: |
+          mkdir -p ../docs
           python run_pipeline.py
 
       - name: Verify outputs
         run: |
           echo "Output files:"
-          ls -lh docs/*.json 2>/dev/null || echo "No JSON files found"
-          test -f docs/metrics.json  && echo "✅ metrics.json OK"  || echo "❌ metrics.json MISSING"
-          test -f docs/summary.json  && echo "✅ summary.json OK"  || echo "❌ summary.json MISSING"
-          test -f docs/charts.json   && echo "✅ charts.json OK"   || echo "❌ charts.json MISSING"
+          ls -lh docs/*.json 2>/dev/null || echo "No JSON files in docs/"
+          test -f docs/metrics.json  && echo "✅ metrics.json"  || echo "❌ metrics.json MISSING"
+          test -f docs/summary.json  && echo "✅ summary.json"  || echo "❌ summary.json MISSING"
+          test -f docs/charts.json   && echo "✅ charts.json"   || echo "❌ charts.json MISSING"
 
-      - name: Clean up old outputs (keep repo small)
+      - name: Clean up
         run: |
-          # Remove any large files not needed in git
-          find . -name "*.log" -not -path "./.git/*" -delete
+          find . -name "*.log" -not -path "./.git/*" -delete 2>/dev/null || true
           find . -name "__pycache__" -not -path "./.git/*" -exec rm -rf {} + 2>/dev/null || true
           find . -name "*.pyc" -delete 2>/dev/null || true
           echo "🧹 Cleanup done"
 
-      - name: Commit and push updated data
+      - name: Commit and push
         run: |
           git config --global user.name "QuantEdge Bot"
           git config --global user.email "bot@quantedgeanalytics.co.in"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git add docs/
-          git stash
           git fetch origin main
           git checkout main
-          git stash pop
           git add docs/
-          git diff --staged --quiet && echo "Nothing to commit" && exit 0
-          git commit -m "📊 Daily update: $(date +'%d %b %Y %H:%M IST')"
-          git push origin main
-          echo "✅ Data pushed to GitHub Pages"
+          if git diff --staged --quiet; then
+            echo "Nothing to commit"
+          else
+            git commit -m "📊 Daily update: $(date +'%d %b %Y %H:%M IST')"
+            git push origin main
+            echo "✅ Data pushed"
+          fi
