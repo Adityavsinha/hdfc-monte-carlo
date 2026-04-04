@@ -809,43 +809,66 @@ function showDashErr(title, msg) {
 //  LIVE PRICE FETCHING (Yahoo Finance API)
 // ══════════════════════════════════════════════
 const PRICE_CACHE = {};
-const CORS_PROXY  = 'https://api.allorigins.win/raw?url=';
+
+// Multiple CORS proxies — tries each until one works
+const PROXIES = [
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(url)}`,
+];
+
+async function fetchWithFallback(url, timeout=7000) {
+  for (const makeProxy of PROXIES) {
+    try {
+      const res = await fetch(makeProxy(url), {
+        signal: AbortSignal.timeout(timeout),
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!res.ok) continue;
+      const text = await res.text();
+      const data = JSON.parse(text);
+      if (data?.quoteResponse?.result) return data;
+      if (data?.chart?.result)         return data;
+    } catch(e) {
+      console.debug('Proxy failed, trying next:', e.message);
+    }
+  }
+  return null;
+}
 
 async function fetchLivePricesFor(symbols) {
-  const batchSize = 25;
+  const batchSize = 20;
   for (let i = 0; i < symbols.length; i += batchSize) {
     const batch = symbols.slice(i, i+batchSize);
     await fetchPriceBatch(batch);
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 500));
   }
   refreshPriceDisplay();
 }
 
 async function fetchPriceBatch(symbols) {
   const syms = symbols.map(s => s+'.NS').join(',');
-  const url  = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${syms}&fields=regularMarketPrice,regularMarketChangePercent,marketCap,regularMarketVolume,fiftyTwoWeekHigh,fiftyTwoWeekLow,trailingPE`;
-  const proxyUrl = CORS_PROXY + encodeURIComponent(url);
+  const url  = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${syms}&fields=regularMarketPrice,regularMarketChangePercent,marketCap,regularMarketVolume,fiftyTwoWeekHigh,fiftyTwoWeekLow,trailingPE`;
 
-  try {
-    const res  = await fetch(proxyUrl, {signal: AbortSignal.timeout(8000)});
-    const data = await res.json();
-    const quotes = data?.quoteResponse?.result || [];
-    quotes.forEach(q => {
-      const sym = q.symbol.replace('.NS','');
-      PRICE_CACHE[sym] = {
-        price : q.regularMarketPrice,
-        chgPct: q.regularMarketChangePercent,
-        mcap  : q.marketCap,
-        vol   : q.regularMarketVolume,
-        h52   : q.fiftyTwoWeekHigh,
-        l52   : q.fiftyTwoWeekLow,
-        pe    : q.trailingPE,
-        ts    : Date.now(),
-      };
-    });
-  } catch(e) {
-    console.debug('Price fetch failed for batch:', e.message);
-  }
+  const data = await fetchWithFallback(url);
+  if (!data) { console.debug('All proxies failed for batch'); return; }
+
+  const quotes = data?.quoteResponse?.result || [];
+  quotes.forEach(q => {
+    const sym = (q.symbol||"").replace('.NS','');
+    if (!sym) return;
+    PRICE_CACHE[sym] = {
+      price : q.regularMarketPrice,
+      chgPct: q.regularMarketChangePercent,
+      mcap  : q.marketCap,
+      vol   : q.regularMarketVolume,
+      h52   : q.fiftyTwoWeekHigh,
+      l52   : q.fiftyTwoWeekLow,
+      pe    : q.trailingPE,
+      ts    : Date.now(),
+    };
+  });
 }
 
 function refreshPriceDisplay() {
@@ -1114,18 +1137,18 @@ async function openModal(symbol) {
 
   document.getElementById('mAva').textContent   = symbol.slice(0,2);
   document.getElementById('mName').textContent  = s.name;
-  document.getElementById('mMeta').textContent  = symbol+' · NSE · '+s.sector+' · '+s.n_simulations?.toLocaleString()+' simulations · β='+s.beta_nifty?.toFixed(2);
+  document.getElementById('mMeta').textContent  = symbol+' · NSE · '+s.sector+' · '+(s.n_simulations||10000).toLocaleString()+' simulations · β='+(s.beta_nifty||'—');
   document.getElementById('mPrice').textContent = '₹'+displayPrice.toFixed(2);
   if (live) document.getElementById('mPrice').textContent += ` (${live.chgPct>=0?'▲':'▼'}${Math.abs(live.chgPct).toFixed(2)}%)`;
-  document.getElementById('mExp').textContent   = 'Expected '+(r>=0?'+':'')+r.toFixed(1)+'% over '+s.horizon_days+' trading days';
+  document.getElementById('mExp').textContent   = 'Expected '+(r>=0?'+':'')+r.toFixed(1)+'% over '+(s.horizon_days||252)+' trading days';
   document.getElementById('mExp').style.color   = r>=0?'var(--green)':'var(--red)';
 
-  document.getElementById('qMean').textContent  = '₹'+fmtN(s.mean_price);
+  document.getElementById('qMean').textContent  = s.mean_price ? '₹'+fmtN(s.mean_price) : 'Loading...';
   document.getElementById('qMeanR').textContent = (r>=0?'+':'')+r.toFixed(1)+'% expected';
-  document.getElementById('qC95').textContent   = '₹'+fmtN(s.ci_95);
-  document.getElementById('qC95R').textContent  = '+'+((s.ci_95/s.price-1)*100).toFixed(1)+'% upside';
-  document.getElementById('qC5').textContent    = '₹'+fmtN(s.ci_5);
-  document.getElementById('qC5R').textContent   = ((s.ci_5/s.price-1)*100).toFixed(1)+'% downside';
+  document.getElementById('qC95').textContent   = s.ci_95  ? '₹'+fmtN(s.ci_95)  : 'Loading...';
+  document.getElementById('qC95R').textContent  = s.ci_95  ? '+'+((s.ci_95/s.price-1)*100).toFixed(1)+'% upside'  : '';
+  document.getElementById('qC5').textContent    = s.ci_5   ? '₹'+fmtN(s.ci_5)   : 'Loading...';
+  document.getElementById('qC5R').textContent   = s.ci_5   ? ((s.ci_5/s.price-1)*100).toFixed(1)+'% downside' : '';
   document.getElementById('qSig').textContent   = s.signal||'—';
   document.getElementById('qSig').style.color   = s.signal_color||'#94a3b8';
   document.getElementById('qConf').textContent  = 'Confidence: '+(s.confidence||'—')+'%';
@@ -1362,10 +1385,16 @@ async function saveWL() {
 // ══════════════════════════════════════════════
 function handleAuth() {
   if (!window._fb) {
-    alert('Firebase not configured yet.\n\nTo enable sign-in:\n1. Go to console.firebase.google.com\n2. Create a project\n3. Add Web app\n4. Copy config into index.html\n5. Enable Google authentication');
+    const cfg = window.FIREBASE_CONFIG?.apiKey;
+    if (!cfg || cfg === "YOUR_API_KEY_HERE") {
+      alert("To enable Sign In:\n\n1. Go to console.firebase.google.com\n2. Create a project → Enable Google Auth\n3. Add Web App → copy config\n4. Open index.html → find FIREBASE_CONFIG\n5. Replace YOUR_API_KEY_HERE etc. with your values\n6. Upload the updated index.html to GitHub docs/");
+    } else {
+      alert("Firebase is initializing... please wait a moment and try again.");
+    }
     return;
   }
-  window._fb.signInWithPopup(window._fb.auth, window._fb.provider).catch(e=>alert('Sign in failed: '+e.message));
+  window._fb.signInWithPopup(window._fb.auth, window._fb.provider)
+    .catch(e => alert("Sign in failed: " + e.message));
 }
 
 function handleSignOut() {
@@ -1394,38 +1423,7 @@ document.querySelectorAll('thead th[data-k]').forEach(th => th.addEventListener(
 }));
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
 
-// ══════════════════════════════════════════════
-//  FIREBASE INIT (if configured)
-// ══════════════════════════════════════════════
-setTimeout(()=>{
-  // Try to init Firebase if user has configured it
-  try {
-    // Check if firebase is loaded
-    if (typeof firebase !== 'undefined') {
-      // Legacy firebase SDK
-    }
-  } catch{}
-
-  // Check for modular Firebase (loaded via type="module" script)
-  if (window._fb) {
-    window._fb.onAuthStateChanged(window._fb.auth, user=>{
-      S.user=user;
-      if(user){
-        document.getElementById('authBtn').style.display='none';
-        document.getElementById('userAva').style.display='flex';
-        document.getElementById('userAva').textContent=(user.displayName||user.email||'U').charAt(0).toUpperCase();
-        // Load watchlist
-        window._fb.getDoc(window._fb.doc(window._fb.db,'users',user.uid)).then(snap=>{
-          if(snap.exists()){S.watchlist=snap.data().watchlist||[];renderWL();}
-        }).catch(()=>{});
-      } else {
-        document.getElementById('authBtn').style.display='flex';
-        document.getElementById('userAva').style.display='none';
-        S.watchlist=[];
-      }
-    });
-  }
-}, 1500);
+// Firebase auth listener handled inside initFirebase() in the script block below
 
 // ══════════════════════════════════════════════
 //  BOOT
@@ -1439,53 +1437,68 @@ loadDashboard();
 setInterval(()=>{ if(S.all.length) fetchLivePricesFor(S.all.map(x=>x.symbol).slice(0,30)); }, 60000);
 </script>
 
-<!-- Firebase (Modular) - Replace with your config -->
-<script type="module">
-  // INSTRUCTIONS: Replace these placeholder values with your Firebase config
-  // Get config from: console.firebase.google.com → Your Project → Project Settings → Web App
-  // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCc5BTXmgK6zNg2dAWKNbk95swmJ6TXQG8",
-  authDomain: "quantedge-c5855.firebaseapp.com",
-  projectId: "quantedge-c5855",
-  storageBucket: "quantedge-c5855.firebasestorage.app",
+<!-- Firebase — replace config values below to enable sign-in -->
+<script>
+// ═══════════════════════════════════════════════════════════
+// FIREBASE CONFIG — Replace with your values from:
+// console.firebase.google.com → Project Settings → Web App
+// ═══════════════════════════════════════════════════════════
+window.FIREBASE_CONFIG = {
+  apiKey           : "AIzaSyCc5BTXmgK6zNg2dAWKNbk95swmJ6TXQG8",
+  authDomain       : "quantedge-c5855.firebaseapp.com",
+  projectId        : "quantedge-c5855",
+  storageBucket    : "quantedge-c5855.firebasestorage.app",
   messagingSenderId: "141320543192",
-  appId: "1:141320543192:web:b59e4d74d2d52478eaf0ad",
-  measurementId: "G-J2Y8L7C8H6"
+  appId            : "1:141320543192:web:b59e4d74d2d52478eaf0ad"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-  };
-
-  // Only init if config is set
-  if (FIREBASE_CONFIG.apiKey !== "AIzaSyCc5BTXmgK6zNg2dAWKNbk95swmJ6TXQG8") {
-    try {
-      const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-      const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
-      const { getFirestore, doc, setDoc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-
-      const app      = initializeApp(FIREBASE_CONFIG);
-      const auth     = getAuth(app);
-      const db       = getFirestore(app);
-      const provider = new GoogleAuthProvider();
-
-      window._fb = { auth, db, provider, signInWithPopup, signOut, onAuthStateChanged, doc, setDoc, getDoc };
-      console.log('✅ Firebase initialized');
-    } catch(e) {
-      console.warn('Firebase init failed:', e.message);
-    }
-  } else {
-    console.info('Firebase not configured — sign-in disabled. Update FIREBASE_CONFIG in index.html to enable.');
+async function initFirebase() {
+  if (window.FIREBASE_CONFIG.apiKey === "YOUR_API_KEY_HERE") {
+    console.info("Firebase not configured — sign-in disabled");
+    return;
   }
+  try {
+    const [appMod, authMod, fsMod] = await Promise.all([
+      import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"),
+    ]);
+    const app  = appMod.initializeApp(window.FIREBASE_CONFIG);
+    const auth = authMod.getAuth(app);
+    const db   = fsMod.getFirestore(app);
+    const prov = new authMod.GoogleAuthProvider();
+    window._fb = {
+      auth, db, provider: prov,
+      signInWithPopup : authMod.signInWithPopup,
+      signOut         : authMod.signOut,
+      onAuthStateChanged: authMod.onAuthStateChanged,
+      doc    : fsMod.doc,
+      setDoc : fsMod.setDoc,
+      getDoc : fsMod.getDoc,
+    };
+    // Wire up auth state listener now that Firebase is ready
+    window._fb.onAuthStateChanged(auth, user => {
+      S.user = user;
+      if (user) {
+        document.getElementById("authBtn").style.display = "none";
+        document.getElementById("userAva").style.display = "flex";
+        document.getElementById("userAva").textContent   = (user.displayName||user.email||"U").charAt(0).toUpperCase();
+        window._fb.getDoc(window._fb.doc(db,"users",user.uid)).then(snap=>{
+          if(snap.exists()){S.watchlist=snap.data().watchlist||[];renderWL();}
+        }).catch(()=>{});
+      } else {
+        document.getElementById("authBtn").style.display = "flex";
+        document.getElementById("userAva").style.display = "none";
+        S.watchlist = [];
+        renderWL();
+      }
+    });
+    console.log("✅ Firebase initialized");
+  } catch(e) {
+    console.warn("Firebase init failed:", e.message);
+  }
+}
+initFirebase();
 </script>
 
 </body>
