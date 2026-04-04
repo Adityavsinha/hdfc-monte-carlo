@@ -17,16 +17,22 @@ from datetime import datetime
 from pathlib import Path
 
 # ── Setup logging ────────────────────────────
-Path("logs").mkdir(exist_ok=True)
-Path("docs").mkdir(exist_ok=True)
-Path("data").mkdir(exist_ok=True)
+SCRIPT_DIR = Path(__file__).parent.resolve()
+REPO_ROOT  = SCRIPT_DIR.parent
+DOCS_DIR   = REPO_ROOT / "docs"
+LOGS_DIR   = REPO_ROOT / "logs"
+DATA_DIR   = REPO_ROOT / "data"
+
+DOCS_DIR.mkdir(exist_ok=True)
+LOGS_DIR.mkdir(exist_ok=True)
+DATA_DIR.mkdir(exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler(f"logs/pipeline_{datetime.now().strftime('%Y%m%d')}.log"),
+        logging.FileHandler(f"{LOGS_DIR}/pipeline_{datetime.now().strftime('%Y%m%d')}.log"),
     ]
 )
 logger = logging.getLogger(__name__)
@@ -74,7 +80,7 @@ def main():
     logger.info(f"  → {len(nifty50_stocks)} stocks in current Nifty 50")
 
     # Save composition for frontend
-    with open("docs/nifty50_composition.json", "w") as f:
+    with open(DOCS_DIR / "nifty50_composition.json", "w") as f:
         json.dump({
             "last_updated": datetime.now().strftime("%d %b %Y %H:%M IST"),
             "count"       : len(nifty50_stocks),
@@ -103,7 +109,7 @@ def main():
     logger.info(f"  → Selected: {', '.join(selected[:10])}... and {len(selected)-10} more")
 
     # Save selection
-    with open("docs/selected_stocks.json", "w") as f:
+    with open(DOCS_DIR / "selected_stocks.json", "w") as f:
         json.dump({
             "last_updated": datetime.now().strftime("%d %b %Y %H:%M IST"),
             "selected"    : selected,
@@ -177,10 +183,10 @@ def main():
         "stocks"        : results,
     }
 
-    with open("docs/metrics.json", "w") as f:
+    with open(DOCS_DIR / "metrics.json", "w") as f:
         json.dump(output, f, separators=(',', ':'))  # Compact JSON
 
-    with open("docs/charts.json", "w") as f:
+    with open(DOCS_DIR / "charts.json", "w") as f:
         json.dump(charts_data, f, separators=(',', ':'))
 
     # Summary JSON (used for homepage — tiny file)
@@ -211,7 +217,7 @@ def main():
         } for r in results]
     }
 
-    with open("docs/summary.json", "w") as f:
+    with open(DOCS_DIR / "summary.json", "w") as f:
         json.dump(summary, f, separators=(',', ':'))
 
     # ── Final summary ──
@@ -226,8 +232,8 @@ def main():
     logger.info(f"  BUY signals      : {buy_count}")
     logger.info(f"  Avg expected ret : {avg_ret:+.1f}%")
     logger.info(f"  Total time       : {total_time/60:.1f} minutes")
-    logger.info(f"  metrics.json     : {Path('docs/metrics.json').stat().st_size/1024:.1f} KB")
-    logger.info(f"  summary.json     : {Path('docs/summary.json').stat().st_size/1024:.1f} KB")
+    logger.info(f"  metrics.json     : {(DOCS_DIR / 'metrics.json').stat().st_size/1024:.1f} KB")
+    logger.info(f"  summary.json     : {(DOCS_DIR / 'summary.json').stat().st_size/1024:.1f} KB")
     logger.info("=" * 65)
 
 
