@@ -11,7 +11,7 @@ HORIZON_DAYS     = 252
 ROLLING_VOL_WIN  = 63
 RISK_FREE_RATE   = 0.065   # RBI repo rate annualised
 T_DOF            = 5       # Student-t degrees of freedom
-TOP_N_STOCKS     = 100     # Max stocks for heavy quant computation
+TOP_N_STOCKS     = 75     # Max stocks for heavy quant computation
 
 # ── Signal Thresholds ─────────────────────────
 BUY_PROB_THRESHOLD    = 0.60   # P(gain) > 60% → BUY
