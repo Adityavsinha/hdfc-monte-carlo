@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -37,48 +39,69 @@ jobs:
           pip install matplotlib openpyxl pyarrow
           echo "✅ All dependencies installed"
 
+      - name: Show current directory structure
+        run: |
+          echo "=== Root files ==="
+          ls -la
+          echo "=== docs/ folder ==="
+          ls -la docs/ 2>/dev/null || echo "docs/ does not exist yet"
+          echo "=== scripts/ folder ==="
+          ls -la scripts/ 2>/dev/null || echo "scripts/ does not exist yet"
+
       - name: Verify scripts exist
         run: |
-          echo "Files in scripts/:"
-          ls -la scripts/ 2>/dev/null || echo "scripts/ folder not found!"
-          test -f scripts/run_pipeline.py  && echo "✅ run_pipeline.py found"  || echo "❌ run_pipeline.py MISSING - upload it first!"
-          test -f scripts/quant_engine.py  && echo "✅ quant_engine.py found"  || echo "❌ quant_engine.py MISSING"
-          test -f scripts/data_ingestion.py && echo "✅ data_ingestion.py found" || echo "❌ data_ingestion.py MISSING"
-          test -f scripts/config.py        && echo "✅ config.py found"         || echo "❌ config.py MISSING"
+          test -f scripts/run_pipeline.py   && echo "✅ run_pipeline.py"   || (echo "❌ run_pipeline.py MISSING" && exit 1)
+          test -f scripts/quant_engine.py   && echo "✅ quant_engine.py"   || (echo "❌ quant_engine.py MISSING" && exit 1)
+          test -f scripts/data_ingestion.py && echo "✅ data_ingestion.py" || (echo "❌ data_ingestion.py MISSING" && exit 1)
+          test -f scripts/config.py         && echo "✅ config.py"         || (echo "❌ config.py MISSING" && exit 1)
+
+      - name: Create docs folder if missing
+        run: mkdir -p docs
 
       - name: Run QuantEdge daily pipeline
         working-directory: scripts
-        run: |
-          mkdir -p ../docs
-          python run_pipeline.py
+        run: python run_pipeline.py
 
-      - name: Verify outputs
+      - name: Verify JSON outputs were created
         run: |
-          echo "Output files:"
-          ls -lh docs/*.json 2>/dev/null || echo "No JSON files in docs/"
-          test -f docs/metrics.json  && echo "✅ metrics.json"  || echo "❌ metrics.json MISSING"
-          test -f docs/summary.json  && echo "✅ summary.json"  || echo "❌ summary.json MISSING"
-          test -f docs/charts.json   && echo "✅ charts.json"   || echo "❌ charts.json MISSING"
+          echo "=== docs/ after pipeline ==="
+          ls -lh docs/
+          echo ""
+          test -f docs/metrics.json  && echo "✅ metrics.json  — $(wc -c < docs/metrics.json) bytes"  || echo "❌ metrics.json MISSING"
+          test -f docs/summary.json  && echo "✅ summary.json  — $(wc -c < docs/summary.json) bytes"  || echo "❌ summary.json MISSING"
+          test -f docs/charts.json   && echo "✅ charts.json   — $(wc -c < docs/charts.json) bytes"   || echo "❌ charts.json MISSING"
+          test -f docs/index.html    && echo "✅ index.html    present"                               || echo "❌ index.html MISSING"
 
-      - name: Clean up
+      - name: Clean up temp files
         run: |
-          find . -name "*.log" -not -path "./.git/*" -delete 2>/dev/null || true
+          find . -name "*.log"       -not -path "./.git/*" -delete 2>/dev/null || true
           find . -name "__pycache__" -not -path "./.git/*" -exec rm -rf {} + 2>/dev/null || true
-          find . -name "*.pyc" -delete 2>/dev/null || true
-          echo "🧹 Cleanup done"
+          find . -name "*.pyc"       -delete 2>/dev/null || true
 
-      - name: Commit and push
+      - name: Commit and push JSON data to GitHub
         run: |
-          git config --global user.name "QuantEdge Bot"
+          git config --global user.name  "QuantEdge Bot"
           git config --global user.email "bot@quantedgeanalytics.co.in"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git fetch origin main
           git checkout main
-          git add docs/
+          git add docs/metrics.json docs/summary.json docs/charts.json docs/nifty50_composition.json || true
           if git diff --staged --quiet; then
-            echo "Nothing to commit"
+            echo "No JSON changes to commit"
           else
-            git commit -m "📊 Daily update: $(date +'%d %b %Y %H:%M IST')"
+            git commit -m "📊 Data update: $(date +'%d %b %Y %H:%M IST')"
             git push origin main
-            echo "✅ Data pushed"
+            echo "✅ JSON data pushed successfully"
           fi
+
+      - name: Trigger GitHub Pages redeploy
+        run: |
+          echo "Triggering Pages rebuild via empty commit to docs..."
+          git fetch origin main
+          git checkout main
+          # Touch a timestamp file to force Pages to redeploy
+          echo "$(date +'%d %b %Y %H:%M:%S IST')" > docs/last_updated.txt
+          git add docs/last_updated.txt
+          git commit -m "🔄 Pages redeploy: $(date +'%d %b %Y %H:%M IST')" || echo "Nothing to commit"
+          git push origin main || echo "Nothing to push"
+          echo "✅ Pages redeploy triggered"
