@@ -763,7 +763,7 @@ const NSE = [
 // ══════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════
-window.A = {
+const A = {
   all:[], filtered:[], chartsData:{},
   dSort:'score', dSec:'all',
   scrSec:'all', scrSort:'name',
@@ -790,56 +790,97 @@ function showSec(s) {
 // ══════════════════════════════════════════════
 //  LOAD DATA (from GitHub Pages live_prices.json + summary.json)
 // ══════════════════════════════════════════════
+// ══ LIVE PRICE ENGINE — Yahoo Finance via multiple CORS proxies ══
+const PROXIES=[
+  u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+  u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u=>`https://thingproxy.freeboard.io/fetch/${u}`,
+];
+
+async function yFetch(syms,ms=7000){
+  const url=`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${syms.map(s=>s+'.NS').join(',')}&fields=regularMarketPrice,regularMarketChangePercent,marketCap,regularMarketVolume,fiftyTwoWeekHigh,fiftyTwoWeekLow,trailingPE`;
+  for(const mkP of PROXIES){
+    try{
+      const r=await fetch(mkP(url),{signal:AbortSignal.timeout(ms)});
+      if(!r.ok)continue;
+      const j=await r.json();
+      const qs=j?.quoteResponse?.result||[];
+      if(!qs.length)continue;
+      const out={};
+      qs.forEach(q=>{const s=(q.symbol||'').replace('.NS','');if(s)out[s]={price:q.regularMarketPrice,chgPct:q.regularMarketChangePercent,mcap:q.marketCap,vol:q.regularMarketVolume,h52:q.fiftyTwoWeekHigh,l52:q.fiftyTwoWeekLow,pe:q.trailingPE};});
+      if(Object.keys(out).length)return out;
+    }catch{}
+  }
+  return {};
+}
+
+async function fetchLive(symbols){
+  const B=25;
+  for(let i=0;i<symbols.length;i+=B){
+    const d=await yFetch(symbols.slice(i,i+B));
+    Object.assign(A.lp,d);
+    if(i===0&&Object.keys(d).length){
+      buildTicker();
+      if(A.curSec==='screener')applyS();
+      else renderD();
+      const ui=document.getElementById('sLoadInd');if(ui)ui.style.display='none';
+      const su=document.getElementById('sUpd');if(su){su.style.display='block';su.textContent='Live: '+new Date().toLocaleTimeString('en-IN');}
+    }
+    await new Promise(r=>setTimeout(r,450));
+  }
+  buildTicker();
+  if(A.curSec==='screener')applyS();else renderD();
+  const su=document.getElementById('sUpd');if(su)su.textContent='Live: '+new Date().toLocaleTimeString('en-IN');
+}
+
 async function loadAll() {
-  try {
-  // Load both simultaneously
+  // Step 1: load simulation data + cached prices simultaneously
   const [sumRes, lpRes] = await Promise.allSettled([
     fetch('summary.json?t='+Date.now()),
     fetch('live_prices.json?t='+Date.now()),
   ]);
 
-  // Process live prices
+  // Use cached prices from GitHub Actions if available (instant, no CORS)
   if (lpRes.status==='fulfilled' && lpRes.value.ok) {
     try {
-      const lpData = await lpRes.value.json();
-      A.lp = lpData.prices || {};
-      document.getElementById('sUpd').textContent  = 'Updated: '+lpData.last_updated;
-      document.getElementById('sLoadInd').style.display='none';
-      document.getElementById('sUpd').style.display='block';
+      const lpData=await lpRes.value.json();
+      A.lp=lpData.prices||{};
       buildTicker();
+      const su=document.getElementById('sUpd');if(su){su.textContent='Cached: '+lpData.last_updated;su.style.display='block';}
+      const si=document.getElementById('sLoadInd');if(si)si.style.display='none';
     } catch {}
-  } else {
-    document.getElementById('sLoadInd').textContent='No live prices yet — run price workflow';
   }
 
-  // Process summary
+  // Process simulation summary
   if (sumRes.status==='fulfilled' && sumRes.value.ok) {
     try {
-      const data = await sumRes.value.json();
-      A.all = data.summary || [];
-      A.scrSimSet = new Set(A.all.map(x=>x.symbol));
-      const ts = data.last_updated||'—';
-      ['navUpd','dUpd','footUpd'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='Updated: '+ts;});
-
-      if (!A.all.length) { showDErr('No stocks processed','Run the GitHub Actions pipeline'); return; }
-      buildHero(A.all); buildKpi(A.all); applyD();
+      const data=await sumRes.value.json();
+      A.all=data.summary||[];
+      A.scrSimSet=new Set(A.all.map(x=>x.symbol));
+      const ts=data.last_updated||'—';
+      ['navUpd','dUpd','footUpd'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='Sim: '+ts;});
+      if(!A.all.length){showDErr('No stocks processed','Run the GitHub Actions pipeline');return;}
+      buildHero(A.all);buildKpi(A.all);applyD();
       document.getElementById('dLoad').style.display='none';
       document.getElementById('dTable').style.display='block';
-
-      // Load charts
-      fetch('charts.json?t='+Date.now()).then(r=>r.json()).then(d=>{ A.chartsData=d; }).catch(()=>{});
-    } catch(e) {
-      showDErr('JSON parse error', e.message);
-    }
+      fetch('charts.json?t='+Date.now()).then(r=>r.json()).then(d=>{A.chartsData=d;}).catch(()=>{});
+    } catch(e){showDErr('JSON parse error',e.message);}
   } else {
     document.getElementById('dLoad').style.display='none';
-    showDErr('summary.json not found','Run the GitHub Actions daily pipeline first (Actions tab → Run workflow)');
+    showDErr('summary.json not found','Run the GitHub Actions daily pipeline — Actions tab → Run workflow');
   }
-  } catch(e) {
-    // Catches network errors (e.g. running from file://)
-    document.getElementById('dLoad').style.display='none';
-    showDErr('Could not load data', 'Make sure this page is served from a web server (not opened as a local file). Error: '+e.message);
-  }
+
+  // Step 2: NOW fetch real-time prices directly from Yahoo Finance
+  const allSyms=[...new Set([...A.all.map(x=>x.symbol),...NSE.map(x=>x.s)])];
+  fetchLive(allSyms);
+
+  // Auto-refresh every 90s during NSE market hours (9:15–15:30 IST)
+  setInterval(()=>{
+    const n=new Date(),h=n.getUTCHours(),m=n.getUTCMinutes(),d=n.getDay();
+    const open=(h===3&&m>=45)||(h>3&&h<10)||(h===10&&m===0);
+    if(d>=1&&d<=5&&open) fetchLive(A.all.map(x=>x.symbol));
+  },90000);
 }
 
 function showDErr(t,m) {
@@ -895,15 +936,14 @@ function buildKpi(s) {
 // ══════════════════════════════════════════════
 //  DASHBOARD FILTERS
 // ══════════════════════════════════════════════
-let dSec='all';
-function setDSec(btn,sec) { document.querySelectorAll('#sec-dashboard .chip').forEach(c=>c.classList.remove('active')); btn.classList.add('active'); dSec=sec; applyD(); }
+function setDSec(btn,sec) { document.querySelectorAll('#sec-dashboard .chip').forEach(c=>c.classList.remove('active')); btn.classList.add('active'); A.dSec=sec; applyD(); }
 
 function applyD() {
   const q=document.getElementById('dSrch').value.toLowerCase();
   const sk=document.getElementById('dSort').value;
   A.filtered=A.all.filter(s=>{
     const mq=!q||s.name.toLowerCase().includes(q)||s.symbol.toLowerCase().includes(q)||s.sector.toLowerCase().includes(q);
-    return mq&&(dSec==='all'||s.sector===dSec);
+    return mq&&(A.dSec==='all'||s.sector===A.dSec);
   });
   A.filtered.sort((a,b)=>{
     let va=a[sk]??-999,vb=b[sk]??-999;
@@ -953,16 +993,16 @@ function renderD() {
 // ══════════════════════════════════════════════
 //  SCREENER (reads from live_prices.json — no CORS)
 // ══════════════════════════════════════════════
-let scrInited=false, scrSec='all';
+let scrInited=false;
 function initScr() {
   if (scrInited) return; scrInited=true;
   applyS();
 }
-function setSS(btn,sec) { document.querySelectorAll('#sec-screener .chip').forEach(c=>c.classList.remove('active')); btn.classList.add('active'); scrSec=sec; applyS(); }
+function setSS(btn,sec) { document.querySelectorAll('#sec-screener .chip').forEach(c=>c.classList.remove('active')); btn.classList.add('active'); A.scrSec=sec; applyS(); }
 function applyS() {
   const q=document.getElementById('sSrch').value.toLowerCase();
   const sk=document.getElementById('sSort').value;
-  let f=NSE.filter(s=>(!q||s.n.toLowerCase().includes(q)||s.s.toLowerCase().includes(q)||s.sec.toLowerCase().includes(q))&&(scrSec==='all'||s.sec===scrSec));
+  let f=NSE.filter(s=>(!q||s.n.toLowerCase().includes(q)||s.s.toLowerCase().includes(q)||s.sec.toLowerCase().includes(q))&&(A.scrSec==='all'||s.sec===A.scrSec));
   f.sort((a,b)=>{
     const pa=A.lp[a.s],pb=A.lp[b.s];
     if(sk==='name') return a.n.localeCompare(b.n);
@@ -988,8 +1028,7 @@ function renderS(stocks) {
     const vol = live?.vol  ? fVol(live.vol) : '—';
     const hasQ= A.scrSimSet.has(s.s);
     const sct = 'st-'+s.sec.replace(/\s+/g,'');
-    const onclickFn = hasQ ? `openM('${s.s}')` : `openScrBasic('${s.s}')`;
-    return `<tr onclick="${onclickFn}" style="animation:fi .18s ${i*.006}s both">
+    return `<tr onclick="${hasQ?`openM('${s.s}')`:`openScrBasic('${s.s}')`}" style="animation:fi .18s ${i*.006}s both">
       <td style="color:var(--muted);font-size:10px;font-family:'JetBrains Mono',monospace">${i+1}</td>
       <td><div class="sym-c">${s.s}</div><div class="name-c">${s.n}</div><span class="sec-tag ${sct}">${s.sec}</span></td>
       <td style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:var(--text)">${pr}</td>
@@ -1050,7 +1089,18 @@ async function openM(sym) {
 
   // Load full stock data
   const full=await loadFull(sym);
-  if(full){A.curStock=full;fillFund(full);fillRisk(full);fillInsight(full);renderSimCharts(full);fillTech(full);}
+  if(full){
+    A.curStock=full;
+    fillFund(full);
+    // Render active tab charts only (avoid rendering hidden canvas at 0x0)
+    const activeTab=document.querySelector('.m-tab.active')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1]||'simulation';
+    setTimeout(()=>{
+      renderSimCharts(full);
+      fillTech(full);
+      fillRisk(full);
+      renderInsightCharts(full);
+    },80);
+  }
 }
 
 async function loadFull(sym) {
@@ -1059,19 +1109,67 @@ async function loadFull(sym) {
 
 function openScrBasic(sym) {
   const live=A.lp[sym]; const stock=NSE.find(s=>s.s===sym);
-  if(!live&&!stock)return;
+  // Fill header
   document.getElementById('mAva').textContent = sym.slice(0,2);
   document.getElementById('mNm').textContent  = stock?.n||sym;
-  document.getElementById('mMt').textContent  = sym+' · NSE · '+(stock?.sec||'—')+' · Live data only (no MC simulation)';
-  document.getElementById('mPr').textContent  = live?'₹'+live.price.toFixed(2):'—';
-  document.getElementById('mEx').textContent  = live?(live.chgPct>=0?'▲':'▼')+Math.abs(live.chgPct).toFixed(2)+'% today':'Price unavailable';
+  document.getElementById('mMt').textContent  = sym+' · NSE · '+(stock?.sec||'—')+' · Live price only';
+  const pr=live?.price;
+  document.getElementById('mPr').textContent  = pr?'₹'+pr.toFixed(2):'Fetching...';
+  document.getElementById('mEx').textContent  = live?.chgPct!=null?(live.chgPct>=0?'▲':'▼')+Math.abs(live.chgPct).toFixed(2)+'% today':'—';
   document.getElementById('mEx').style.color  = live?.chgPct>=0?'var(--green)':'var(--red)';
-  ['msEP','ms95','ms5'].forEach(id=>document.getElementById(id).textContent='—');
-  ['msEPr','ms95r','ms5r'].forEach(id=>document.getElementById(id).textContent='');
-  document.getElementById('msSig').textContent='No MC Data';
-  document.getElementById('msConf').textContent='Not simulated';
-  document.getElementById('mFtL').textContent='Live data only · Run pipeline to simulate this stock';
-  switchT('chart'); // Go straight to TradingView chart
+  // Strip — show only live price data
+  document.getElementById('msEP').textContent  = pr?'₹'+pr.toFixed(2):'—';
+  document.getElementById('msEPr').textContent = 'current price';
+  document.getElementById('ms95').textContent  = live?.h52?'₹'+live.h52.toFixed(0):'—';
+  document.getElementById('ms95r').textContent = '52W High';
+  document.getElementById('ms5').textContent   = live?.l52?'₹'+live.l52.toFixed(0):'—';
+  document.getElementById('ms5r').textContent  = '52W Low';
+  document.getElementById('msSig').textContent = live?.chgPct>=0?'📈 UP':'📉 DOWN';
+  document.getElementById('msSig').style.color = live?.chgPct>=0?'var(--green)':'var(--red)';
+  document.getElementById('msConf').textContent= 'today';
+  document.getElementById('msRsi').textContent = live?.pe?live.pe.toFixed(1):'—';
+  document.getElementById('msRsiS').textContent= 'P/E Ratio';
+  document.getElementById('msSh').textContent  = live?.vol?fVol(live.vol):'—';
+  document.getElementById('msSh').nextElementSibling.textContent='volume';
+  document.getElementById('msFG').textContent  = '—';
+  document.getElementById('mFtL').textContent  = 'Live market data · Click 🔬 to view full Monte Carlo simulation';
+
+  // Hide simulation/risk/insights tabs for screener stocks, show only Chart+Fundamentals
+  document.querySelectorAll('.m-tab').forEach(t=>{
+    const isChart = t.getAttribute('onclick')?.includes("'chart'");
+    const isFund  = t.getAttribute('onclick')?.includes("'fundamentals'");
+    t.style.opacity = (isChart||isFund) ? '1' : '0.3';
+    t.style.pointerEvents = (isChart||isFund) ? 'auto' : 'none';
+  });
+
+  // Fill basic fundamentals
+  document.getElementById('gradeBox').innerHTML=`
+    <div style="font-size:36px;width:60px;height:60px;border-radius:50%;background:var(--blue-lt);border:2px solid var(--blue-md);display:flex;align-items:center;justify-content:center;flex-shrink:0">📈</div>
+    <div class="grade-info">
+      <h4>${stock?.n||sym} — NSE Listed</h4>
+      <p style="color:var(--text2)">Sector: ${stock?.sec||'—'} · Symbol: ${sym} · Live data from Yahoo Finance</p>
+      <p style="color:var(--muted);margin-top:4px;font-size:10px">Full Monte Carlo simulation not available for this stock. Top 75 Nifty stocks are simulated daily.</p>
+    </div>`;
+  document.getElementById('mDesc').textContent = stock?.n ? `${stock.n} (${sym}) is listed on the National Stock Exchange of India. Live price and basic market data shown. For full quantitative analysis including GARCH volatility modeling and Monte Carlo price paths, this stock needs to be in the top 75 Nifty selection.` : 'Company overview not available.';
+  const mk=rows=>rows.map(([k,v])=>`<div class="fund-row"><span class="fund-k">${k}</span><span class="fund-v">${v}</span></div>`).join('');
+  const liveVal = [
+    ['Live Price',   pr?'₹'+pr.toFixed(2):'—'],
+    ['Change Today', live?.chgPct!=null?(live.chgPct>=0?'+':'')+live.chgPct.toFixed(2)+'%':'—'],
+    ['52W High',     live?.h52?'₹'+live.h52.toFixed(2):'—'],
+    ['52W Low',      live?.l52?'₹'+live.l52.toFixed(2):'—'],
+  ];
+  const mktData = [
+    ['P/E Ratio',    live?.pe?live.pe.toFixed(1):'—'],
+    ['Market Cap',   live?.mcap?fVol(live.mcap):'—'],
+    ['Volume',       live?.vol?fVol(live.vol):'—'],
+    ['Sector',       stock?.sec||'—'],
+  ];
+  document.getElementById('fVal').innerHTML=mk(liveVal);
+  document.getElementById('fProf').innerHTML=mk([['ROE','—'],['ROA','—'],['Net Income','—'],['Revenue','—'],['Div Yield','—']]);
+  document.getElementById('fHealth').innerHTML=mk([['Debt/Equity','—'],['Current Ratio','—'],['Employees','—'],['Website','—']]);
+  document.getElementById('fMkt').innerHTML=mk(mktData);
+
+  switchT('chart');
   A.curStock={symbol:sym,name:stock?.n||sym,sector:stock?.sec||'—'};
   loadTV(sym);
   document.getElementById('overlay').classList.add('open');
@@ -1083,6 +1181,8 @@ function closeM() {
   document.body.style.overflow='';
   A.curStock=null; destroyCharts();
   document.getElementById('tvContainer').innerHTML='';
+  // Restore all tabs
+  document.querySelectorAll('.m-tab').forEach(t=>{t.style.opacity='1';t.style.pointerEvents='auto';});
 }
 
 // ══════════════════════════════════════════════
@@ -1093,53 +1193,87 @@ function switchT(name) {
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.m-tab').forEach(t=>{ if(t.getAttribute('onclick')?.includes(`'${name}'`))t.classList.add('active'); });
   const p=document.getElementById('tab-'+name); if(p)p.classList.add('active');
-  if(name==='chart'&&A.curStock) loadTV(A.curStock.symbol);
-  if(name==='simulation'&&A.curStock&&A.curStock.path_charts) renderSimCharts(A.curStock);
+  // Delay render so DOM is visible and canvas has correct dimensions
+  setTimeout(()=>{
+    if(name==='chart'&&A.curStock) loadTV(A.curStock.symbol);
+    if(name==='simulation'&&A.curStock) renderSimCharts(A.curStock);
+    if(name==='risk'&&A.curStock) { fillRisk(A.curStock); }
+    if(name==='insights'&&A.curStock) { fillInsight(A.curStock); renderInsightCharts(A.curStock); }
+    if(name==='technical'&&A.curStock) fillTech(A.curStock);
+  }, 60);
 }
 
 // ══════════════════════════════════════════════
 //  TRADINGVIEW CHART
 // ══════════════════════════════════════════════
+// NSE symbol mapping for TradingView — handles special chars & alternate tickers
+const TV_MAP = {
+  'M&M':'MM','BAJAJ-AUTO':'BAJAJATO','L&TFH':'L_TFH',
+  'BAJAJFINSV':'BAJAJFINSV','HDFCLIFE':'HDFCLIFE','SBILIFE':'SBILIFE',
+  'INDUSINDBK':'INDUSINDBK','BANDHANBNK':'BANDHANBNK',
+  'TATASTEEL':'TATASTEEL','JSWSTEEL':'JSWSTEEL',
+  'ETERNAL':'ETERNAL','JIOFIN':'JIOFIN',
+  'TMPV':'TATAMOTORS',  // fallback
+};
+
+function getTVSym(sym) {
+  const mapped = TV_MAP[sym] || sym.replace(/[^A-Z0-9]/g,'');
+  return 'NSE:' + mapped;
+}
+
+// Fallback: use TradingView iframe embed (works without tv.js restrictions)
 function loadTV(sym) {
-  const c=document.getElementById('tvContainer');
-  c.innerHTML='';
-  const div=document.createElement('div');
-  div.id='tv-widget-'+Date.now();
-  div.style.height='100%';
-  c.appendChild(div);
-  const script=document.createElement('script');
-  script.src='https://s3.tradingview.com/tv.js';
-  script.async=true;
-  script.onload=()=>{
-    try{
-      new TradingView.widget({
-        width:"100%", height:500,
-        symbol:"NSE:"+sym.replace('-',''),
-        interval:"D",
-        timezone:"Asia/Kolkata",
-        theme:"dark",
-        style:"1",
-        locale:"en",
-        toolbar_bg:"#0f1729",
-        enable_publishing:false,
-        allow_symbol_change:true,
-        container_id:div.id,
-        studies:["RSI@tv-basicstudies","MACD@tv-basicstudies","BB@tv-basicstudies"],
-        overrides:{
-          "paneProperties.background":"#0f1729",
-          "paneProperties.backgroundType":"solid",
-          "scalesProperties.textColor":"#8fa3c8",
-        }
-      });
-    }catch(e){c.innerHTML='<div style="padding:40px;text-align:center;color:var(--muted);font-size:12px">TradingView chart unavailable for '+sym+'. Try refreshing.</div>';}
+  const c = document.getElementById('tvContainer');
+  if (!c) return;
+  c.innerHTML = '';
+  
+  const tvSym = getTVSym(sym);
+  
+  // Use iframe embed — more reliable than widget library for free domains
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'width:100%;height:500px;border:none;border-radius:10px';
+  iframe.allow = 'fullscreen';
+  const params = new URLSearchParams({
+    symbol: tvSym,
+    interval: 'D',
+    timezone: 'Asia/Kolkata',
+    theme: 'dark',
+    style: '1',
+    locale: 'en',
+    toolbar_bg: '0f1729',
+    enable_publishing: '0',
+    hide_legend: '0',
+    save_image: '0',
+    studies: 'RSI@tv-basicstudies,MACD@tv-basicstudies',
+    container_id: 'tv_' + sym,
+  });
+  iframe.src = `https://s.tradingview.com/widgetembed/?${params}`;
+  
+  // Error state if iframe fails
+  iframe.onerror = () => {
+    c.innerHTML = `<div style="padding:40px;text-align:center;color:var(--muted);font-size:12px;background:var(--s1);border-radius:10px;border:1px solid var(--border)">
+      <div style="font-size:24px;margin-bottom:10px">📈</div>
+      <div style="font-weight:700;color:var(--text);margin-bottom:6px">${sym} Chart</div>
+      <div>TradingView chart failed to load. 
+        <a href="https://in.tradingview.com/chart/?symbol=NSE:${getTVSym(sym).replace('NSE:','')}" 
+          target="_blank" style="color:var(--blue)">Open on TradingView ↗</a>
+      </div>
+    </div>`;
   };
-  c.appendChild(script);
+  
+  c.appendChild(iframe);
+  
+  // Fallback link below chart
+  const link = document.createElement('div');
+  link.style.cssText = 'text-align:right;margin-top:6px;font-size:10px';
+  link.innerHTML = `<a href="https://in.tradingview.com/chart/?symbol=${tvSym}" target="_blank" style="color:var(--blue);text-decoration:none">Open full chart on TradingView ↗</a>`;
+  c.appendChild(link);
 }
 
 // ══════════════════════════════════════════════
 //  CHARTS
 // ══════════════════════════════════════════════
-function destroyCharts(){Object.values(A.charts).forEach(c=>{try{c?.destroy();}catch{}});A.charts={};}
+function destroyCharts(){Object.values(A.charts).forEach(c=>{try{c?.destroy();}catch{}});A.charts={paths:null,hist:null,ma:null,rsi:null,macd:null,mom:null,radar:null,dist:null,rr:null};}
 
 function renderSimCharts(s) {
   destroyCharts();
@@ -1195,6 +1329,10 @@ function renderSimCharts(s) {
 }
 
 function fillTech(s) {
+  if(!s){
+    document.getElementById('techGrid').innerHTML='<div style="grid-column:1/-1;padding:30px;text-align:center;color:var(--muted);font-size:12px">⚠️ Loading technical data... open a stock first</div>';
+    return;
+  }
   const ti = [
     {l:'RSI (14)',v:s.rsi_14?.toFixed(1)||'—',sig:s.rsi_signal,cls:s.rsi_14<35?'sig-bullish':s.rsi_14>65?'sig-bearish':'sig-neutral'},
     {l:'MACD',v:s.macd?.toFixed(3)||'—',sig:s.macd_cross,cls:s.macd_cross==='Bullish'?'sig-bullish':'sig-bearish'},
@@ -1213,17 +1351,64 @@ function fillTech(s) {
     <div class="ti-sig ${t.cls}">${t.sig}</div>
   </div>`).join('');
 
-  // MA chart
-  if (document.getElementById('maChart') && s.sma_50 && s.sma_200) {
-    A.charts.ma = new Chart(document.getElementById('maChart'),{type:'bar',
-      data:{labels:['Current Price','EMA 20','SMA 50','SMA 200'],
-        datasets:[{data:[s.price,s.ema_20,s.sma_50,s.sma_200],
-          backgroundColor:['rgba(79,142,247,.6)','rgba(167,139,250,.6)','rgba(16,217,138,.6)','rgba(245,166,35,.6)'],
-          borderRadius:6,borderWidth:0}]},
-      options:{responsive:true,maintainAspectRatio:false,animation:false,
-        plugins:{legend:{display:false}},
-        scales:{x:{grid:{display:false},ticks:{font:{size:11}}},
+  // MA comparison bar chart
+  const maEl = document.getElementById('maChart');
+  if (maEl) {
+    if(A.charts.ma){try{A.charts.ma.destroy();}catch{}}
+    const maData=[s.price,s.ema_20,s.sma_50,s.sma_200].map(v=>v||null);
+    A.charts.ma = new Chart(maEl,{type:'bar',
+      data:{labels:['Current','EMA 20','SMA 50','SMA 200'],
+        datasets:[{data:maData,
+          backgroundColor:['rgba(79,142,247,.8)','rgba(167,139,250,.7)','rgba(16,217,138,.7)','rgba(245,166,35,.7)'],
+          borderRadius:8,borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,animation:{duration:400},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw?'₹'+ctx.raw.toLocaleString('en-IN'):'N/A'}}},
+        scales:{x:{grid:{display:false},ticks:{font:{size:11},color:'#8fa3c8'}},
                 y:{ticks:{callback:v=>'₹'+Math.round(v),font:{size:10}},grid:{color:'#1a2540'}}}}
+    });
+  }
+
+  // RSI gauge chart
+  const rsiEl = document.getElementById('rsiChart');
+  if (rsiEl && s.rsi_14!=null) {
+    if(A.charts.rsi){try{A.charts.rsi.destroy();}catch{}}
+    const rsiVal=s.rsi_14||50;
+    A.charts.rsi = new Chart(rsiEl,{type:'doughnut',
+      data:{labels:['RSI','Remaining'],
+        datasets:[{data:[rsiVal, 100-rsiVal],
+          backgroundColor:[rsiVal<35?'#10d98a':rsiVal>65?'#f54b63':'#f5a623','rgba(30,45,74,.5)'],
+          borderWidth:0,circumference:180,rotation:-90}]},
+      options:{responsive:true,maintainAspectRatio:false,animation:{duration:400},
+        plugins:{legend:{display:false},tooltip:{enabled:false}},
+        layout:{padding:{bottom:20}}},
+      plugins:[{id:'rsiText',afterDraw(chart){
+        const{ctx,chartArea:{top,left,right,bottom}}=chart;
+        ctx.save();
+        const cx=(left+right)/2, cy=top+(bottom-top)*0.78;
+        ctx.fillStyle='#e8f0fe';ctx.font='bold 20px Plus Jakarta Sans';ctx.textAlign='center';
+        ctx.fillText(rsiVal.toFixed(1),cx,cy);
+        ctx.fillStyle='#8fa3c8';ctx.font='11px Plus Jakarta Sans';
+        ctx.fillText(s.rsi_signal||'',cx,cy+18);
+        ctx.restore();
+      }}]
+    });
+  }
+
+  // MACD histogram
+  const macdEl = document.getElementById('macdChart');
+  if (macdEl && s.macd_hist!=null) {
+    if(A.charts.macd){try{A.charts.macd.destroy();}catch{}}
+    const h=s.macd_hist||0, sig=s.macd_signal||0, m=s.macd||0;
+    A.charts.macd = new Chart(macdEl,{type:'bar',
+      data:{labels:['MACD','Signal','Histogram'],
+        datasets:[{data:[m,sig,h],
+          backgroundColor:[m>0?'rgba(79,142,247,.7)':'rgba(245,75,99,.7)',
+            'rgba(245,166,35,.7)', h>0?'rgba(16,217,138,.8)':'rgba(245,75,99,.8)'],
+          borderRadius:5,borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,animation:{duration:400},
+        plugins:{legend:{display:false}},
+        scales:{x:{grid:{display:false},ticks:{font:{size:11},color:'#8fa3c8'}},
+                y:{ticks:{font:{size:10}},grid:{color:'#1a2540'}}}}
     });
   }
 }
@@ -1257,6 +1442,10 @@ function fillFund(s) {
 }
 
 function fillRisk(s) {
+  if(!s){
+    document.getElementById('riskGrid').innerHTML='<div style="grid-column:1/-1;padding:30px;text-align:center;color:var(--muted);font-size:12px">⚠️ Loading risk data... open a stock first</div>';
+    return;
+  }
   document.getElementById('riskGrid').innerHTML=[
     {l:'VaR 95%',v:(s.var_95*100)?.toFixed(2)+'%',c:'var(--red)',s:'Max loss 95% conf'},
     {l:'VaR 99%',v:(s.var_99*100)?.toFixed(2)+'%',c:'var(--red)',s:'Max loss 99% conf'},
@@ -1304,6 +1493,44 @@ function fillInsight(s) {
     `⚠️ <strong>Risk:</strong> VaR 95%=${(s.var_95*100)?.toFixed(1)}% · Sharpe=${s.sharpe?.toFixed(2)} (${s.sharpe>0.8?'Excellent':s.sharpe>0.4?'Good':s.sharpe>0?'Modest':'Poor'}) · Max DD=${(s.max_drawdown*100)?.toFixed(1)}%`,
     `🏆 <strong>Signal: ${s.signal}</strong> (${s.confidence}% confidence). ${s.signal?.includes('BUY')?'Quantitative model favors accumulation.':s.signal?.includes('RISKY')?'Elevated risk — manage position carefully.':'Hold and monitor key levels.'}`,
   ].join('<br><br>');
+}
+
+// Insight charts (return distribution + risk-return scatter)
+function renderInsightCharts(s) {
+  if (!s) return;
+  // Return distribution
+  const dc = document.getElementById('distC');
+  if (dc && s.histogram) {
+    if (A.charts.dist) { try{A.charts.dist.destroy();}catch{} }
+    const hi = s.histogram;
+    A.charts.dist = new Chart(dc, {type:'bar',
+      data:{labels:hi.labels||[], datasets:[
+        {label:'Simulated',data:hi.counts||[],backgroundColor:'rgba(79,142,247,.35)',borderColor:'rgba(79,142,247,.7)',borderWidth:1},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,animation:false,
+        plugins:{legend:{display:false}},
+        scales:{x:{ticks:{maxTicksLimit:6,font:{size:10},callback:(v,i)=>hi.labels[i]?'₹'+Math.round(hi.labels[i]).toLocaleString('en-IN'):''},grid:{display:false}},
+                y:{ticks:{maxTicksLimit:4,font:{size:10}},grid:{color:'#1a2540'}}}}
+    });
+  }
+  // Risk-return scatter of all stocks
+  const rrc = document.getElementById('rrC');
+  if (rrc && A.all.length) {
+    if (A.charts.rr) { try{A.charts.rr.destroy();}catch{} }
+    const pts = A.all.map(x=>({x:+(x.sigma_annual*100||0).toFixed(2),y:+(x.expected_return_pct||0).toFixed(2),label:x.symbol}));
+    const cur = {x:+(s.sigma_annual*100||0).toFixed(2),y:+(s.expected_return_pct||0).toFixed(2)};
+    A.charts.rr = new Chart(rrc, {type:'scatter',
+      data:{datasets:[
+        {label:'All stocks',data:pts,backgroundColor:'rgba(79,142,247,.3)',pointRadius:3,pointHoverRadius:5},
+        {label:s.symbol,data:[cur],backgroundColor:'#10d98a',pointRadius:8,pointHoverRadius:10},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,animation:false,
+        plugins:{legend:{display:true,position:'top',labels:{boxWidth:8,font:{size:10},color:'#8fa3c8'}},
+          tooltip:{callbacks:{label:(ctx)=>ctx.datasetIndex===0?ctx.raw.label+': σ='+ctx.raw.x+'% r='+ctx.raw.y+'%':s.symbol+': σ='+ctx.raw.x+'% r='+ctx.raw.y+'%'}}},
+        scales:{x:{title:{display:true,text:'Volatility (σ %)',font:{size:10}},ticks:{font:{size:10}},grid:{color:'#1a2540'}},
+                y:{title:{display:true,text:'Expected Return (%)',font:{size:10}},ticks:{font:{size:10}},grid:{color:'#1a2540'}}}}
+    });
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -1379,7 +1606,9 @@ document.querySelectorAll('thead th[data-k]').forEach(th=>th.addEventListener('c
 }));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeM();if(A.profileOpen)toggleProfile();}});
 
-// Boot
+// Boot — ensure A state is clean
+A.dSec = 'all';
+A.scrSec = 'all';
 loadAll();
 </script>
 
