@@ -213,3 +213,190 @@ def run_full_pipeline(symbol, features, fin_info, nifty_returns=None):
         logger.error(f"  {symbol}: failed — {e}")
         import traceback; traceback.print_exc()
         return None
+
+
+# ════════════════════════════════════════════
+#  TECHNICAL ANALYSIS ENGINE
+# ════════════════════════════════════════════
+
+def compute_technical_indicators(df: pd.DataFrame) -> dict:
+    """
+    Computes key technical indicators from OHLCV data.
+    Returns dict of indicator values + signals.
+    """
+    try:
+        close  = df["Close"].squeeze().astype(float)
+        high   = df["High"].squeeze().astype(float)  if "High"   in df.columns else close
+        low    = df["Low"].squeeze().astype(float)   if "Low"    in df.columns else close
+        volume = df["Volume"].squeeze().astype(float) if "Volume" in df.columns else None
+
+        result = {}
+
+        # ── RSI (14) ────────────────────────────
+        delta   = close.diff()
+        gain    = delta.clip(lower=0).rolling(14).mean()
+        loss    = (-delta.clip(upper=0)).rolling(14).mean()
+        rs      = gain / loss.replace(0, 1e-10)
+        rsi     = float((100 - 100/(1+rs)).iloc[-1])
+        result["rsi_14"]        = round(rsi, 2)
+        result["rsi_signal"]    = "Oversold" if rsi < 30 else "Overbought" if rsi > 70 else "Neutral"
+
+        # ── MACD (12,26,9) ──────────────────────
+        ema12   = close.ewm(span=12).mean()
+        ema26   = close.ewm(span=26).mean()
+        macd    = ema12 - ema26
+        signal  = macd.ewm(span=9).mean()
+        hist    = macd - signal
+        result["macd"]          = round(float(macd.iloc[-1]), 4)
+        result["macd_signal"]   = round(float(signal.iloc[-1]), 4)
+        result["macd_hist"]     = round(float(hist.iloc[-1]), 4)
+        result["macd_cross"]    = "Bullish" if float(macd.iloc[-1]) > float(signal.iloc[-1]) else "Bearish"
+
+        # ── Bollinger Bands (20,2) ───────────────
+        sma20   = close.rolling(20).mean()
+        std20   = close.rolling(20).std()
+        bb_up   = float((sma20 + 2*std20).iloc[-1])
+        bb_mid  = float(sma20.iloc[-1])
+        bb_low  = float((sma20 - 2*std20).iloc[-1])
+        cur_p   = float(close.iloc[-1])
+        bb_pct  = (cur_p - bb_low) / (bb_up - bb_low) if bb_up != bb_low else 0.5
+        result["bb_upper"]      = round(bb_up, 2)
+        result["bb_middle"]     = round(bb_mid, 2)
+        result["bb_lower"]      = round(bb_low, 2)
+        result["bb_position"]   = round(float(bb_pct), 3)
+        result["bb_signal"]     = "Near Upper" if bb_pct > 0.8 else "Near Lower" if bb_pct < 0.2 else "Middle"
+
+        # ── Moving Averages ──────────────────────
+        sma_50  = float(close.rolling(50).mean().iloc[-1])  if len(close) >= 50  else None
+        sma_200 = float(close.rolling(200).mean().iloc[-1]) if len(close) >= 200 else None
+        ema_20  = float(close.ewm(span=20).mean().iloc[-1])
+        result["sma_50"]        = round(sma_50,  2) if sma_50  else None
+        result["sma_200"]       = round(sma_200, 2) if sma_200 else None
+        result["ema_20"]        = round(ema_20,  2)
+        result["above_sma50"]   = bool(cur_p > sma_50)  if sma_50  else None
+        result["above_sma200"]  = bool(cur_p > sma_200) if sma_200 else None
+        result["golden_cross"]  = bool(sma_50 > sma_200) if (sma_50 and sma_200) else None
+
+        # ── ATR (14) ────────────────────────────
+        tr1  = high - low
+        tr2  = (high - close.shift()).abs()
+        tr3  = (low  - close.shift()).abs()
+        atr  = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1).rolling(14).mean()
+        result["atr_14"]        = round(float(atr.iloc[-1]), 2)
+        result["atr_pct"]       = round(float(atr.iloc[-1]) / cur_p * 100, 2)
+
+        # ── Stochastic (14,3) ────────────────────
+        lo14 = low.rolling(14).min()
+        hi14 = high.rolling(14).max()
+        k    = 100 * (close - lo14) / (hi14 - lo14 + 1e-10)
+        d    = k.rolling(3).mean()
+        result["stoch_k"]       = round(float(k.iloc[-1]), 2)
+        result["stoch_d"]       = round(float(d.iloc[-1]), 2)
+        result["stoch_signal"]  = "Oversold" if float(k.iloc[-1]) < 20 else "Overbought" if float(k.iloc[-1]) > 80 else "Neutral"
+
+        # ── Volume Analysis ──────────────────────
+        if volume is not None:
+            vol_sma20 = volume.rolling(20).mean()
+            result["vol_ratio"]     = round(float(volume.iloc[-1]/vol_sma20.iloc[-1]), 2) if float(vol_sma20.iloc[-1]) > 0 else 1.0
+            result["vol_trend"]     = "Above Average" if result["vol_ratio"] > 1.2 else "Below Average" if result["vol_ratio"] < 0.8 else "Normal"
+
+        # ── Overall Technical Score ──────────────
+        tech_score = 0
+        if rsi < 35:                                tech_score += 2
+        elif rsi < 45:                              tech_score += 1
+        elif rsi > 75:                              tech_score -= 2
+        elif rsi > 65:                              tech_score -= 1
+        if result["macd_cross"] == "Bullish":       tech_score += 2
+        else:                                       tech_score -= 1
+        if bb_pct < 0.25:                           tech_score += 2
+        elif bb_pct > 0.85:                         tech_score -= 2
+        if result.get("above_sma50"):               tech_score += 1
+        if result.get("above_sma200"):              tech_score += 1
+        if result.get("golden_cross"):              tech_score += 1
+        if result.get("vol_ratio", 1) > 1.5:       tech_score += 1
+
+        result["tech_score"]    = tech_score
+        result["tech_signal"]   = (
+            "Strong Buy"  if tech_score >= 5 else
+            "Buy"         if tech_score >= 2 else
+            "Neutral"     if tech_score >= -1 else
+            "Sell"        if tech_score >= -4 else
+            "Strong Sell"
+        )
+
+        return result
+
+    except Exception as e:
+        logger.warning(f"  Technical analysis failed: {e}")
+        return {}
+
+
+# ════════════════════════════════════════════
+#  FUNDAMENTAL ANALYSIS ENGINE
+# ════════════════════════════════════════════
+
+def compute_fundamental_score(fin_info: dict, risk_metrics: dict) -> dict:
+    """
+    Scores a stock on fundamental metrics.
+    Returns score, grade, and individual metric assessments.
+    """
+    score = 0
+    details = {}
+
+    # P/E ratio
+    pe = fin_info.get("pe_ratio")
+    if pe:
+        if pe < 15:      score += 2; details["pe"] = "Cheap"
+        elif pe < 25:    score += 1; details["pe"] = "Fair"
+        elif pe < 40:    score -= 1; details["pe"] = "Expensive"
+        else:            score -= 2; details["pe"] = "Very Expensive"
+    
+    # P/B ratio
+    pb = fin_info.get("pb_ratio")
+    if pb:
+        if pb < 1.5:     score += 2; details["pb"] = "Undervalued"
+        elif pb < 3:     score += 1; details["pb"] = "Fair"
+        elif pb < 6:     score -= 1; details["pb"] = "Premium"
+        else:            score -= 2; details["pb"] = "Expensive"
+
+    # ROE
+    roe = fin_info.get("roe")
+    if roe:
+        roe_pct = roe * 100
+        if roe_pct > 20:   score += 2; details["roe"] = "Excellent"
+        elif roe_pct > 12: score += 1; details["roe"] = "Good"
+        elif roe_pct > 5:  score -= 1; details["roe"] = "Below Average"
+        else:              score -= 2; details["roe"] = "Poor"
+
+    # Debt/Equity
+    de = fin_info.get("debt_equity")
+    if de is not None:
+        if de < 0.3:     score += 2; details["debt"] = "Low Debt"
+        elif de < 1.0:   score += 1; details["debt"] = "Moderate"
+        elif de < 2.0:   score -= 1; details["debt"] = "High Debt"
+        else:            score -= 2; details["debt"] = "Very High Debt"
+
+    # Dividend yield
+    dy = fin_info.get("dividend_yield")
+    if dy:
+        dy_pct = dy * 100
+        if dy_pct > 3:   score += 1; details["dividend"] = "High Yield"
+        elif dy_pct > 1: score += 0; details["dividend"] = "Moderate Yield"
+
+    # Sharpe ratio (from risk metrics)
+    sh = risk_metrics.get("sharpe", 0)
+    if sh > 1.0:  score += 2; details["risk_adj"] = "Excellent"
+    elif sh > 0.5: score += 1; details["risk_adj"] = "Good"
+    elif sh < 0:   score -= 1; details["risk_adj"] = "Poor"
+
+    grade = (
+        "A+" if score >= 8 else "A"  if score >= 6 else
+        "B+" if score >= 4 else "B"  if score >= 2 else
+        "C+" if score >= 0 else "C"  if score >= -2 else "D"
+    )
+
+    return {
+        "fundamental_score" : score,
+        "fundamental_grade" : grade,
+        "fundamental_details": details,
+    }
