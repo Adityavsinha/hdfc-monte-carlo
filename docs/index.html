@@ -425,9 +425,9 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:18px
         <button class="chip" onclick="setDSec(this,'Energy')">Energy</button>
         <button class="chip" onclick="setDSec(this,'Industrials')">Industrials</button>
         <button class="chip" onclick="setDSec(this,'Technology')">Technology</button>
-        <button class="chip" onclick="setDSec(this,'Consumer')">Consumer</button>
+        <button class="chip" onclick="setDSec(this,'Consumer Cyclical')">Consumer Cyclical</button>
         <button class="chip" onclick="setDSec(this,'Healthcare')">Healthcare</button>
-
+        <button class="chip" onclick="setDSec(this,'Healthcare')">Utilities</Utilities>
       </div>
       <select class="sort-sel" id="dSort" onchange="applyD()">
         <option value="score">Signal Score ↓</option>
@@ -473,8 +473,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:18px
   <!-- ══ SCREENER ══ -->
   <div id="sec-screener" style="display:none">
     <div class="scr-note">
-      📡 <strong>Live Screener</strong> — Prices loaded from GitHub Actions (updated every 30 min during market hours via yfinance).
-      Stocks with 🔬 have full Monte Carlo + Technical analysis available.
+      📡 <strong>Live Screener</strong> 
     </div>
     <div class="ctrl">
       <div class="search-box">
