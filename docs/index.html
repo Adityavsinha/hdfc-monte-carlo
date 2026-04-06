@@ -673,7 +673,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:18px
 
 <!-- NSE UNIVERSE -->
 <script>
-const BSE = [
+const NSE = [
   {s:"RELIANCE",n:"Reliance Industries",sec:"Energy"},{s:"TCS",n:"Tata Consultancy Services",sec:"IT"},
   {s:"HDFCBANK",n:"HDFC Bank",sec:"Banking"},{s:"BHARTIARTL",n:"Bharti Airtel",sec:"Telecom"},
   {s:"ICICIBANK",n:"ICICI Bank",sec:"Banking"},{s:"INFOSYS",n:"Infosys",sec:"IT"},
@@ -1220,7 +1220,7 @@ const TV_MAP = {
 
 function getTVSym(sym) {
   const mapped = TV_MAP[sym] || sym.replace(/[^A-Z0-9]/g,'');
-  return 'NSE:' + mapped;
+  return 'BSE:' + mapped;
 }
 
 // Fallback: use TradingView iframe embed (works without tv.js restrictions)
