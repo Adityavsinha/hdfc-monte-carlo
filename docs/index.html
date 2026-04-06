@@ -763,7 +763,7 @@ const NSE = [
 // ══════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════
-const A = {
+window.A = {
   all:[], filtered:[], chartsData:{},
   dSort:'score', dSec:'all',
   scrSec:'all', scrSort:'name',
@@ -791,6 +791,7 @@ function showSec(s) {
 //  LOAD DATA (from GitHub Pages live_prices.json + summary.json)
 // ══════════════════════════════════════════════
 async function loadAll() {
+  try {
   // Load both simultaneously
   const [sumRes, lpRes] = await Promise.allSettled([
     fetch('summary.json?t='+Date.now()),
@@ -833,6 +834,11 @@ async function loadAll() {
   } else {
     document.getElementById('dLoad').style.display='none';
     showDErr('summary.json not found','Run the GitHub Actions daily pipeline first (Actions tab → Run workflow)');
+  }
+  } catch(e) {
+    // Catches network errors (e.g. running from file://)
+    document.getElementById('dLoad').style.display='none';
+    showDErr('Could not load data', 'Make sure this page is served from a web server (not opened as a local file). Error: '+e.message);
   }
 }
 
@@ -982,7 +988,8 @@ function renderS(stocks) {
     const vol = live?.vol  ? fVol(live.vol) : '—';
     const hasQ= A.scrSimSet.has(s.s);
     const sct = 'st-'+s.sec.replace(/\s+/g,'');
-    return `<tr onclick="${hasQ?`openM('${s.s}')`:`openScrBasic('${s.s}')`}" style="animation:fi .18s ${i*.006}s both">
+    const onclickFn = hasQ ? `openM('${s.s}')` : `openScrBasic('${s.s}')`;
+    return `<tr onclick="${onclickFn}" style="animation:fi .18s ${i*.006}s both">
       <td style="color:var(--muted);font-size:10px;font-family:'JetBrains Mono',monospace">${i+1}</td>
       <td><div class="sym-c">${s.s}</div><div class="name-c">${s.n}</div><span class="sec-tag ${sct}">${s.sec}</span></td>
       <td style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:var(--text)">${pr}</td>
