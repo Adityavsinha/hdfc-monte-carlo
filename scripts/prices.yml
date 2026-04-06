@@ -1,0 +1,60 @@
+name: QuantEdge — Live Price Update
+
+on:
+  schedule:
+    # Every 30 min Mon-Fri 9AM-4PM IST (3:30-10:30 UTC)
+    - cron: '*/30 3-10 * * 1-5'
+    # Also run once at night to have fresh data by morning
+    - cron: '0 18 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  fetch_prices:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install yfinance pandas numpy
+
+      - name: Fetch live prices
+        working-directory: scripts
+        run: python fetch_prices.py
+
+      - name: Verify output
+        run: |
+          test -f docs/live_prices.json && echo "✅ live_prices.json OK" || echo "❌ MISSING"
+          ls -lh docs/live_prices.json 2>/dev/null
+
+      - name: Commit and push
+        run: |
+          git config --global user.name "QuantEdge PriceBot"
+          git config --global user.email "prices@quantedgeanalytics.co.in"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git fetch origin main
+          git checkout main
+          git add docs/live_prices.json
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "💹 Price update: $(date +'%d %b %Y %H:%M IST')"
+            git push origin main
+            echo "✅ Prices pushed"
+          fi
