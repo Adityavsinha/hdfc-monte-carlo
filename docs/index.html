@@ -421,11 +421,13 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:18px
       </div>
       <div class="chips">
         <button class="chip active" onclick="setDSec(this,'all')">All</button>
-        <button class="chip" onclick="setDSec(this,'Banking')">Banking</button>
-        <button class="chip" onclick="setDSec(this,'IT')">IT</button>
-        <button class="chip" onclick="setDSec(this,'Auto')">Auto</button>
-        <button class="chip" onclick="setDSec(this,'FMCG')">FMCG</button>
-        <button class="chip" onclick="setDSec(this,'Pharma')">Pharma</button>
+        <button class="chip" onclick="setDSec(this,'Financial Services')">Financial Services</button>
+        <button class="chip" onclick="setDSec(this,'Energy')">Energy</button>
+        <button class="chip" onclick="setDSec(this,'Industrials')">Industrials</button>
+        <button class="chip" onclick="setDSec(this,'Technology')">Technology</button>
+        <button class="chip" onclick="setDSec(this,'Consumer')">Consumer</button>
+        <button class="chip" onclick="setDSec(this,'Healthcare')">Healthcare</button>
+
       </div>
       <select class="sort-sel" id="dSort" onchange="applyD()">
         <option value="score">Signal Score ↓</option>
@@ -671,7 +673,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:18px
 
 <!-- NSE UNIVERSE -->
 <script>
-const NSE = [
+const BSE = [
   {s:"RELIANCE",n:"Reliance Industries",sec:"Energy"},{s:"TCS",n:"Tata Consultancy Services",sec:"IT"},
   {s:"HDFCBANK",n:"HDFC Bank",sec:"Banking"},{s:"BHARTIARTL",n:"Bharti Airtel",sec:"Telecom"},
   {s:"ICICIBANK",n:"ICICI Bank",sec:"Banking"},{s:"INFOSYS",n:"Infosys",sec:"IT"},
@@ -745,7 +747,7 @@ const NSE = [
   {s:"BHEL",n:"BHEL",sec:"Industrial"},{s:"HAL",n:"HAL",sec:"Defence"},
   {s:"BDL",n:"Bharat Dynamics",sec:"Defence"},{s:"COCHINSHIP",n:"Cochin Shipyard",sec:"Defence"},
   {s:"VARUNBEV",n:"Varun Beverages",sec:"FMCG"},{s:"UBL",n:"United Breweries",sec:"FMCG"},
-  {s:"RADICO",n:"Radico Khaitan",sec:"FMCG"},{s:"BERGERPAINTS",n:"Berger Paints",sec:"Consumer"},
+  {s:"RADICO",n:"Radico Khaitan",sec:"FMCG"},{s:"BERGEPAINT",n:"Berger Paints",sec:"Consumer"},
   {s:"PFIZER",n:"Pfizer India",sec:"Pharma"},{s:"ABBOTINDIA",n:"Abbott India",sec:"Pharma"},
   {s:"AJANTPHARM",n:"Ajanta Pharma",sec:"Pharma"},{s:"MANKIND",n:"Mankind Pharma",sec:"Pharma"},
   {s:"CDSL",n:"CDSL",sec:"Finance"},{s:"BSE",n:"BSE",sec:"Finance"},
