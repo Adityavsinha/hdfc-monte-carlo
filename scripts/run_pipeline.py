@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 from config import TOP_N_STOCKS, NIFTY50_SYMBOLS, SECTOR_MAP
 from data_ingestion import (fetch_live_nifty50, fetch_stock_data,
                              fetch_financial_info, compute_features)
-from quant_engine import run_full_pipeline
+from quant_engine import run_full_pipeline, compute_technical_indicators, compute_fundamental_score
 
 
 def fetch_nifty50_returns():
@@ -125,8 +125,16 @@ def main():
         fin_info["name"]   = meta.get("name", sym)
         fin_info["sector"] = fin_info.get("sector") or meta.get("sector", SECTOR_MAP.get(sym,"Other"))
 
+        # Technical analysis on full OHLCV data
+        logger.info(f"    Computing technical indicators...")
+        tech = compute_technical_indicators(df)
+
         result = run_full_pipeline(sym, feat, fin_info, nifty_returns)
         if result:
+            result.update(tech)
+            # Fundamental score
+            fund_score = compute_fundamental_score(fin_info, result)
+            result.update(fund_score)
             results.append(result)
         else:
             failed.append(sym)
@@ -169,6 +177,17 @@ def main():
             "market_cap": r.get("market_cap"), "pe_ratio": r.get("pe_ratio"),
             "beta_nifty": r.get("beta_nifty"), "rank": r["rank"],
             "mu_annual": r.get("mu_annual"), "score": r.get("score",0),
+            # Technical indicators for screener display
+            "rsi_14": r.get("rsi_14"), "rsi_signal": r.get("rsi_signal"),
+            "macd_cross": r.get("macd_cross"), "tech_signal": r.get("tech_signal"),
+            "tech_score": r.get("tech_score"),
+            "above_sma50": r.get("above_sma50"), "above_sma200": r.get("above_sma200"),
+            "golden_cross": r.get("golden_cross"),
+            "bb_position": r.get("bb_position"), "bb_signal": r.get("bb_signal"),
+            "stoch_k": r.get("stoch_k"), "vol_ratio": r.get("vol_ratio"),
+            "sma_50": r.get("sma_50"), "sma_200": r.get("sma_200"),
+            "fundamental_grade": r.get("fundamental_grade"),
+            "fundamental_score": r.get("fundamental_score"),
             # Fields needed by modal quick metrics strip
             "mean_price": r.get("mean_price"), "median_price": r.get("median_price"),
             "ci_5": r.get("ci_5"), "ci_25": r.get("ci_25"),
