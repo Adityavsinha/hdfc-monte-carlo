@@ -1240,7 +1240,7 @@ function fillFund(s) {
     <div class="grade-info">
       <h4>Fundamental Grade: ${grd}</h4>
       <p style="color:var(--text2)">Score: ${s.fundamental_score||'—'} · Based on P/E, P/B, ROE, Debt/Equity, Dividend Yield, Sharpe Ratio</p>
-      <p style="color:var(--muted);margin-top:4px;font-size:10px">${s.fundamental_details?JSON.stringify(s.fundamental_details).replace(/[{}"]/g,'').replace(/,/g:' · '):'—'}</p>
+      <p style="color:var(--muted);margin-top:4px;font-size:10px">${s.fundamental_details?JSON.stringify(s.fundamental_details).replace(/[{}"]/g,'').replace(/,/g,' · '):'—'}</p>
     </div>`;
   document.getElementById('mDesc').textContent=s.description||'Company description not available.';
   const fmt=(v,pre='',suf='',d=2)=>{
@@ -1392,7 +1392,6 @@ window.FIREBASE_CONFIG = {
   storageBucket: "quantedge-c5855.firebasestorage.app",
   messagingSenderId: "141320543192",
   appId: "1:141320543192:web:b59e4d74d2d52478eaf0ad",
-  measurementId: "G-J2Y8L7C8H6"
 };
 
 async function initFirebase() {
