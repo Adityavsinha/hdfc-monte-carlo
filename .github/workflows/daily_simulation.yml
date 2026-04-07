@@ -2,13 +2,11 @@ name: QuantEdge Analytics — Daily Pipeline
 
 on:
   schedule:
-    - cron: '0 13 * * 1-5'
+    - cron: '0 13 * * 1-5'   # 6:30 PM IST Mon–Fri
   workflow_dispatch:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -17,11 +15,10 @@ env:
 jobs:
   quant_pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
-
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -35,73 +32,58 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install yfinance pandas numpy scipy statsmodels arch requests
-          pip install matplotlib openpyxl pyarrow
-          echo "✅ All dependencies installed"
+          pip install yfinance pandas numpy scipy statsmodels arch requests matplotlib openpyxl
+          echo "✅ Dependencies installed"
 
-      - name: Show current directory structure
+      - name: Verify scripts
         run: |
-          echo "=== Root files ==="
-          ls -la
-          echo "=== docs/ folder ==="
-          ls -la docs/ 2>/dev/null || echo "docs/ does not exist yet"
-          echo "=== scripts/ folder ==="
-          ls -la scripts/ 2>/dev/null || echo "scripts/ does not exist yet"
+          test -f scripts/run_pipeline.py   && echo "✅ run_pipeline.py"   || (echo "❌ MISSING" && exit 1)
+          test -f scripts/quant_engine.py   && echo "✅ quant_engine.py"   || (echo "❌ MISSING" && exit 1)
+          test -f scripts/data_ingestion.py && echo "✅ data_ingestion.py" || (echo "❌ MISSING" && exit 1)
+          test -f scripts/config.py         && echo "✅ config.py"         || (echo "❌ MISSING" && exit 1)
+          test -f scripts/fetch_prices.py   && echo "✅ fetch_prices.py"   || (echo "❌ MISSING" && exit 1)
 
-      - name: Verify scripts exist
-        run: |
-          test -f scripts/run_pipeline.py   && echo "✅ run_pipeline.py"   || (echo "❌ run_pipeline.py MISSING" && exit 1)
-          test -f scripts/quant_engine.py   && echo "✅ quant_engine.py"   || (echo "❌ quant_engine.py MISSING" && exit 1)
-          test -f scripts/data_ingestion.py && echo "✅ data_ingestion.py" || (echo "❌ data_ingestion.py MISSING" && exit 1)
-          test -f scripts/config.py         && echo "✅ config.py"         || (echo "❌ config.py MISSING" && exit 1)
-
-      - name: Create docs folder if missing
-        run: mkdir -p docs
-
-      - name: Run QuantEdge daily pipeline
+      - name: Step 1 — Fetch Nifty 500 screener data
         working-directory: scripts
-        run: python run_pipeline.py
-
-      - name: Verify JSON outputs were created
         run: |
-          echo "=== docs/ after pipeline ==="
-          ls -lh docs/
-          echo ""
-          test -f docs/metrics.json  && echo "✅ metrics.json  — $(wc -c < docs/metrics.json) bytes"  || echo "❌ metrics.json MISSING"
-          test -f docs/summary.json  && echo "✅ summary.json  — $(wc -c < docs/summary.json) bytes"  || echo "❌ summary.json MISSING"
-          test -f docs/charts.json   && echo "✅ charts.json   — $(wc -c < docs/charts.json) bytes"   || echo "❌ charts.json MISSING"
-          test -f docs/index.html    && echo "✅ index.html    present"                               || echo "❌ index.html MISSING"
+          echo "Fetching EOD prices + fundamentals for 500 stocks..."
+          python fetch_prices.py
+          echo "✅ screener_data.json generated"
 
-      - name: Clean up temp files
+      - name: Step 2 — Run Nifty 100 simulation pipeline
+        working-directory: scripts
         run: |
-          find . -name "*.log"       -not -path "./.git/*" -delete 2>/dev/null || true
+          echo "Running Monte Carlo on Nifty 100..."
+          python run_pipeline.py
+          echo "✅ simulation pipeline done"
+
+      - name: Verify outputs
+        run: |
+          echo "=== docs/ outputs ==="
+          ls -lh docs/*.json 2>/dev/null
+          test -f docs/screener_data.json && echo "✅ screener_data.json — $(du -sh docs/screener_data.json | cut -f1)" || echo "❌ screener_data.json MISSING"
+          test -f docs/summary.json       && echo "✅ summary.json"       || echo "❌ summary.json MISSING"
+          test -f docs/metrics.json       && echo "✅ metrics.json"       || echo "❌ metrics.json MISSING"
+          test -f docs/charts.json        && echo "✅ charts.json"        || echo "❌ charts.json MISSING"
+
+      - name: Cleanup
+        run: |
           find . -name "__pycache__" -not -path "./.git/*" -exec rm -rf {} + 2>/dev/null || true
-          find . -name "*.pyc"       -delete 2>/dev/null || true
+          find . -name "*.pyc" -delete 2>/dev/null || true
 
-      - name: Commit and push JSON data to GitHub
+      - name: Commit and push
         run: |
           git config --global user.name  "QuantEdge Bot"
           git config --global user.email "bot@quantedgeanalytics.co.in"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git fetch origin main
           git checkout main
-          git add docs/metrics.json docs/summary.json docs/charts.json docs/nifty50_composition.json || true
+          git add docs/
           if git diff --staged --quiet; then
-            echo "No JSON changes to commit"
-          else
-            git commit -m "📊 Data update: $(date +'%d %b %Y %H:%M IST')"
-            git push origin main
-            echo "✅ JSON data pushed successfully"
+            echo "Nothing to commit — touching timestamp"
+            echo "$(date +'%d %b %Y %H:%M:%S IST')" > docs/last_updated.txt
+            git add docs/last_updated.txt
           fi
-
-      - name: Trigger GitHub Pages redeploy
-        run: |
-          echo "Triggering Pages rebuild via empty commit to docs..."
-          git fetch origin main
-          git checkout main
-          # Touch a timestamp file to force Pages to redeploy
-          echo "$(date +'%d %b %Y %H:%M:%S IST')" > docs/last_updated.txt
-          git add docs/last_updated.txt
-          git commit -m "🔄 Pages redeploy: $(date +'%d %b %Y %H:%M IST')" || echo "Nothing to commit"
-          git push origin main || echo "Nothing to push"
-          echo "✅ Pages redeploy triggered"
+          git commit -m "📊 Daily update: $(date +'%d %b %Y %H:%M IST')" || echo "Nothing to commit"
+          git push origin main
+          echo "✅ All data pushed to GitHub Pages"
