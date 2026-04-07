@@ -1310,7 +1310,7 @@ const TV_MAP = {
 
 function getTVSym(sym) {
   const mapped = TV_MAP[sym] || sym.replace(/[^A-Z0-9]/g,'');
-  return 'NSE:' + mapped;
+  return 'BSE:' + mapped;
 }
 
 // Fallback: use TradingView iframe embed (works without tv.js restrictions)
