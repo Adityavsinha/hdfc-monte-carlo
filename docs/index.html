@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,viewport-fit=cover">
+<meta name="theme-color" content="#2F80ED">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>QuantEdge Analytics — Data. Insights. Advantage.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -107,7 +111,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter','Plus Jakarta Sa
 .page{max-width:1280px;margin:0 auto;padding:22px 28px 60px}
 
 /* ── SECTION TABS ── */
-.page-tabs{display:flex;gap:0;margin-bottom:22px;background:var(--white);border:1.5px solid var(--border);border-radius:10px;padding:4px;width:fit-content;box-shadow:0 1px 4px rgba(15,31,60,.06)}
+.page-tabs{display:flex;gap:0;margin-bottom:22px;background:var(--white);border:1.5px solid var(--border);border-radius:10px;padding:4px;width:fit-content;max-width:100%;box-shadow:0 1px 4px rgba(15,31,60,.06)}
 .ptab{padding:8px 22px;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;border:none;background:none;border-radius:8px;transition:all .2s ease;font-family:inherit;letter-spacing:.2px}
 .ptab:hover{color:var(--text);background:var(--s1)}
 .ptab.active{background:var(--blue);color:#fff;box-shadow:0 2px 10px rgba(47,128,237,.35)}
@@ -116,7 +120,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter','Plus Jakarta Sa
 .ctrl{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
 .search-box{position:relative;flex:1;min-width:200px;max-width:320px}
 .search-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
-.search-inp{width:100%;height:36px;background:var(--white);border:1.5px solid var(--border);color:var(--text);padding:0 12px 0 34px;border-radius:8px;font-size:13px;font-family:inherit;outline:none;transition:all .18s;box-shadow:0 1px 3px rgba(15,31,60,.06)}
+.search-inp{width:100%;height:36px;background:var(--white);border:1.5px solid var(--border);color:var(--text);padding:0 12px 0 34px;border-radius:8px;font-size:16px;font-family:inherit;outline:none;transition:all .18s;box-shadow:0 1px 3px rgba(15,31,60,.06)}
 .search-inp:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,128,237,.12)}
 .search-inp::placeholder{color:var(--muted)}
 .chips{display:flex;gap:5px;flex-wrap:wrap}
@@ -127,7 +131,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter','Plus Jakarta Sa
 .sort-sel:focus{border-color:var(--blue);outline:none}
 
 /* ── KPI CARDS ── */
-.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;overflow-x:auto}
 .kpi{
   background:var(--white);border:1px solid var(--border);
   border-radius:12px;padding:18px 20px;
@@ -212,7 +216,8 @@ td{padding:12px 13px;vertical-align:middle}
 
 /* ── MODAL ── */
 .overlay{display:none;position:fixed;inset:0;background:rgba(17,24,39,.4);backdrop-filter:blur(6px);z-index:800;overflow-y:auto;padding:20px 16px}
-.overlay.open{display:flex;align-items:flex-start;justify-content:center;animation:fadeIn .2s}
+.overlay.open{display:flex;align-items:flex-start;justify-content:center;animation:fadeIn .15s}
+@media(max-width:768px){.overlay.open{align-items:flex-end}}
 .modal{
   background:var(--white);border:1px solid var(--border);
   border-radius:var(--rxl);width:100%;max-width:960px;
@@ -264,7 +269,7 @@ td{padding:12px 13px;vertical-align:middle}
 .chart-box.full{grid-column:1/-1}
 .chart-box.third{grid-column:span 1}
 .chart-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
-.chart-wrap{position:relative}
+.chart-wrap{position:relative;min-height:0}
 .cw180{height:180px}.cw220{height:220px}.cw260{height:260px}.cw140{height:140px}
 
 /* TradingView */
@@ -386,8 +391,145 @@ footer{background:var(--white);border-top:1px solid var(--border);padding:20px 2
 /* Inter font */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-@media(max-width:1100px){.kpi-row{grid-template-columns:repeat(3,1fr)}.m-strip{grid-template-columns:repeat(4,1fr)}.risk-grid,.tech-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:768px){.nav,.page,.hero,footer{padding-left:14px;padding-right:14px}.kpi-row{grid-template-columns:repeat(2,1fr)}.hero-stats,.nav-mid{display:none}.chart-grid,.fund-grid,.scen-row{grid-template-columns:1fr}.chart-box.full{grid-column:1}.m-strip{grid-template-columns:repeat(2,1fr)}.hd{display:none}.profile-panel{width:100%}}
+/* ── RESPONSIVE BREAKPOINTS ── */
+
+/* Large tablets */
+@media(max-width:1100px){
+  .kpi-row{grid-template-columns:repeat(3,1fr)}
+  .m-strip{grid-template-columns:repeat(4,1fr)}
+  .risk-grid,.tech-grid{grid-template-columns:repeat(2,1fr)}
+  .page{padding:18px 20px 48px}
+}
+
+/* Tablet */
+@media(max-width:900px){
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .card-grid{grid-template-columns:repeat(2,1fr)}
+  .chart-grid{grid-template-columns:1fr}
+  .chart-box.full{grid-column:1}
+  .fund-grid{grid-template-columns:1fr}
+  .scen-row{grid-template-columns:1fr 1fr 1fr}
+  .hst{padding:14px 18px}
+}
+
+/* Mobile landscape + small tablet */
+@media(max-width:768px){
+  /* Nav */
+  .nav{padding:0 16px;height:56px}
+  .nav-mid{display:none}
+  .nav-upd{display:none}
+  .nav-name{font-size:14px}
+  .nav-tag{display:none}
+  .live-pill{display:none}
+  .nav-right{gap:8px}
+  .auth-btn{padding:5px 12px;font-size:11px}
+
+  /* Hero */
+  .hero{padding:24px 16px 28px}
+  .hero-in{flex-direction:column;gap:16px}
+  .hero-left h1{font-size:22px;letter-spacing:-.5px}
+  .hero-left p{font-size:12px}
+  .hero-badges{gap:6px}
+  .hero-badge{font-size:10px;padding:3px 10px}
+  .hero-stats{display:none}
+
+  /* Page */
+  .page{padding:14px 14px 48px}
+  .page-tabs{margin-bottom:16px}
+  .ptab{padding:7px 16px;font-size:11px}
+
+  /* Controls */
+  .ctrl{gap:8px;flex-wrap:wrap}
+  .search-box{min-width:100%;max-width:100%;order:1}
+  .chips{order:2;gap:4px}
+  .chip{height:30px;padding:0 11px;font-size:10px}
+  .sort-sel{order:3;width:100%;margin-left:0}
+  .ctrl-right{order:4;width:100%;justify-content:space-between}
+  .view-toggle{flex:1;justify-content:center}
+
+  /* KPI cards */
+  .kpi-row{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+  .kpi{padding:13px 14px}
+  .kpi-ico{width:32px;height:32px;margin-bottom:9px}
+  .kpi-v{font-size:18px}
+
+  /* Table */
+  .hd{display:none}
+  .tbl-card{border-radius:10px}
+  .tbl-top{padding:11px 14px}
+  td,thead th{padding:10px 10px}
+  .sym-c{font-size:12px}
+  .name-c{display:none}
+  .price-sub{display:none}
+
+  /* Card grid */
+  .card-grid{grid-template-columns:1fr;gap:10px;padding:12px}
+  .stock-card{padding:14px}
+
+  /* Charts */
+  .chart-grid{grid-template-columns:1fr;gap:10px}
+  .chart-box.full{grid-column:1}
+  .chart-box{padding:12px}
+  .cw260{height:200px}
+  .cw220{height:180px}
+  .cw180{height:150px}
+  .cw140{height:120px}
+
+  /* Fund grid */
+  .fund-grid{grid-template-columns:1fr;gap:10px}
+  .risk-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .tech-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .scen-row{grid-template-columns:1fr}
+
+  /* Modal */
+  .overlay{padding:0}
+  .modal{border-radius:0;max-width:100%;min-height:100vh;max-height:100vh;overflow:hidden}
+  .m-head{padding:16px 16px 14px;border-radius:0}
+  .m-nm{font-size:15px}
+  .m-pr{font-size:18px}
+  .m-strip{grid-template-columns:repeat(2,1fr)}
+  .ms-cell{padding:10px 12px}
+  .ms-l{font-size:9px}
+  .ms-v{font-size:12px}
+  .m-tabs{padding:0 12px;gap:0}
+  .m-tab{padding:10px 12px;font-size:10px}
+  .tab-panel{padding:14px 14px}
+  .m-foot{padding:8px 14px}
+
+  /* Profile panel */
+  .profile-panel{width:100%;border-left:none;border-radius:0}
+
+  /* Ticker */
+  .ticker-wrap{display:none} /* hide on mobile to save space */
+
+  /* Footer */
+  footer{padding:14px 16px;flex-direction:column;gap:6px;text-align:center}
+}
+
+/* Mobile portrait (small phones) */
+@media(max-width:480px){
+  .hero-left h1{font-size:19px}
+  .kpi-row{grid-template-columns:repeat(2,1fr);gap:7px}
+  .kpi{padding:11px 12px}
+  .kpi-v{font-size:16px}
+  .kpi-s{display:none}
+  .risk-grid{grid-template-columns:1fr 1fr}
+  .tech-grid{grid-template-columns:1fr 1fr}
+  .m-strip{grid-template-columns:repeat(2,1fr)}
+  .ms-cell:nth-child(n+5){display:none} /* show only first 4 metrics on tiny screens */
+  .page-tabs{width:100%}
+  .ptab{flex:1;text-align:center;padding:7px 8px}
+  td{padding:9px 8px}
+  .ret-badge{font-size:10px;padding:2px 6px}
+  .sig-badge{font-size:8px;padding:2px 6px}
+}
+
+/* iOS safe area support */
+@supports(padding-bottom:env(safe-area-inset-bottom)){
+  .nav{padding-top:env(safe-area-inset-top)}
+  footer{padding-bottom:max(18px,env(safe-area-inset-bottom))}
+  .overlay{padding-bottom:env(safe-area-inset-bottom)}
+}
 
 /* ── Professional fintech enhancements ── */
 .kpi-row { animation: fadeUp .3s ease; }
@@ -433,6 +575,76 @@ footer{background:var(--white);border-top:1px solid var(--border);padding:20px 2
 .pp-sec-title { font-size:11px; color:var(--blue-d); border-bottom:2px solid var(--blue-md); padding-bottom:8px; margin-bottom:12px; }
 /* Screener quant tag */
 .quant-tag { font-weight:700; font-size:9px; letter-spacing:.4px; }
+
+/* ── MOBILE TOUCH ENHANCEMENTS ── */
+* { -webkit-tap-highlight-color: transparent; }
+button, .chip, .nav-btn, .ptab, .m-tab, .wl-btn, .close-x, .vt-btn {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+/* Minimum touch target 44px for iOS HIG */
+.chip { min-height: 36px; display: inline-flex; align-items: center; }
+.nav-btn { min-height: 36px; display: inline-flex; align-items: center; }
+.wl-btn { min-width: 36px; min-height: 36px; width: 36px; height: 36px; }
+.close-x { min-width: 36px; min-height: 36px; width: 36px; height: 36px; }
+.vt-btn { min-height: 36px; min-width: 36px; }
+/* Smooth momentum scroll on iOS */
+.tbl-wrap, .tab-panel, .m-tabs, .profile-panel, .tbl-wrap {
+  -webkit-overflow-scrolling: touch;
+  overflow-scrolling: touch;
+}
+/* Prevent text selection on interactive elements */
+.stock-card, tbody tr, .ti-card, .risk-card { user-select: none; }
+/* Better font rendering on mobile */
+@media(max-width:768px){
+  body { font-size: 13px; }
+  .kpi-l, .chart-lbl, .ms-l { letter-spacing: .3px; }
+  input { font-size: 16px !important; } /* prevent iOS zoom on focus */
+}
+
+/* ── MOBILE BOTTOM NAVIGATION ── */
+.mob-tabs {
+  display: none;
+}
+@media(max-width:768px){
+  .mob-tabs {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    z-index: 600;
+    padding: 6px 16px calc(6px + env(safe-area-inset-bottom));
+    gap: 8px;
+    box-shadow: 0 -2px 10px rgba(15,31,60,.08);
+  }
+  .mob-tab {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all .18s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .mob-tab.active {
+    color: var(--blue);
+    background: var(--blue-lt);
+  }
+  .mob-tab:hover { color: var(--blue); }
+  /* Add bottom padding to page content so it's not hidden behind nav */
+  .page { padding-bottom: 80px; }
+  footer { margin-bottom: 56px; }
+}
 </style>
 </head>
 <body>
@@ -452,6 +664,11 @@ footer{background:var(--white);border-top:1px solid var(--border);padding:20px 2
     <button class="nav-btn" id="nb-screener"  onclick="showSec('screener')">Screener</button>
     <button class="nav-btn" onclick="toggleProfile()">Portfolio</button>
     <button class="nav-btn" onclick="toggleProfile()">Watchlist</button>
+  </div>
+  <!-- Mobile nav tabs (shown instead of nav-mid on small screens) -->
+  <div class="mob-tabs" id="mobTabs">
+    <button class="mob-tab active" id="mobt-dashboard" onclick="showSec('dashboard')">Dashboard</button>
+    <button class="mob-tab" id="mobt-screener" onclick="showSec('screener')">Screener</button>
   </div>
   <div class="nav-right">
     <div class="live-pill"><div class="ldot"></div>EOD Data</div>
@@ -572,7 +789,7 @@ footer{background:var(--white);border-top:1px solid var(--border);padding:20px 2
   <!-- ══ SCREENER ══ -->
   <div id="sec-screener" style="display:none">
     <div class="scr-note">
-      <strong>NSE 500 Screener</strong> 
+      <strong>NSE Screener</strong> 
     </div>
     <div class="ctrl">
       <div class="search-box">
@@ -887,7 +1104,11 @@ function showSec(s) {
   ['dashboard','screener'].forEach(x=>{
     document.getElementById('nb-'+x)?.classList.toggle('active',x===s);
     document.getElementById('pt-'+x)?.classList.toggle('active',x===s);
+    // Sync mobile bottom tabs
+    document.getElementById('mobt-'+x)?.classList.toggle('active',x===s);
   });
+  // Scroll to top on section change (mobile UX)
+  window.scrollTo({top:0,behavior:'smooth'});
   if (s==='screener') initScr();
 }
 
@@ -1221,7 +1442,7 @@ function renderCards(){
           <span class="sec-tag ${sct}" style="margin-top:4px">${normSec(s.sector)}</span>
         </div>
         <div>
-          <div class="card-price">&#8377;${px.toFixed(1)}</div>
+          <div class="card-price">₹${px.toFixed(1)}</div>
           <div class="card-chg" style="color:${(chg||0)>=0?'var(--green)':'var(--red)'}">${chg!=null?(chg>=0?'+':'')+chg.toFixed(2)+'%':r>=0?'+'+r.toFixed(1)+'%':r.toFixed(1)+'%'}</div>
         </div>
       </div>
@@ -1370,16 +1591,16 @@ async function openM(sym) {
   document.getElementById('mAva').textContent = sym.slice(0,2);
   document.getElementById('mNm').textContent  = s.name;
   document.getElementById('mMt').textContent  = sym+' · NSE · '+s.sector+' · '+(s.n_simulations||10000).toLocaleString()+' sims · β='+(s.beta_nifty?.toFixed(2)||'—');
-  document.getElementById('mPr').textContent  = '₹'+px.toFixed(2)+(live?.chgPct!=null?' ('+(live.chgPct>=0?'▲':'▼')+Math.abs(live.chgPct).toFixed(2)+'%)':'');
+  document.getElementById('mPr').innerHTML   = '₹'+px.toFixed(2)+(live?.chgPct!=null?' ('+(live.chgPct>=0?'▲':'▼')+Math.abs(live.chgPct).toFixed(2)+'%)':'');
   document.getElementById('mEx').textContent  = 'Expected '+(r>=0?'+':'')+r.toFixed(1)+'% over '+(s.horizon_days||252)+' trading days';
   document.getElementById('mEx').style.color  = r>=0?'var(--green)':'var(--red)';
 
   // Strip
-  document.getElementById('msEP').textContent  = s.mean_price  ? '&#8377;'+fN(s.mean_price)  : 'Loading...';
+  document.getElementById('msEP').innerHTML   = s.mean_price  ? '₹'+fN(s.mean_price)  : 'Loading...';
   document.getElementById('msEPr').textContent = (r>=0?'+':'')+r.toFixed(1)+'% expected';
-  document.getElementById('ms95').textContent  = s.ci_95 ? '&#8377;'+fN(s.ci_95) : '...';
+  document.getElementById('ms95').innerHTML   = s.ci_95 ? '₹'+fN(s.ci_95) : '...';
   document.getElementById('ms95r').textContent = s.ci_95 ? '+'+((s.ci_95/s.price-1)*100).toFixed(1)+'% upside' : '';
-  document.getElementById('ms5').textContent   = s.ci_5  ? '&#8377;'+fN(s.ci_5)  : '...';
+  document.getElementById('ms5').innerHTML    = s.ci_5  ? '₹'+fN(s.ci_5)  : '...';
   document.getElementById('ms5r').textContent  = s.ci_5  ? ((s.ci_5/s.price-1)*100).toFixed(1)+'% downside' : '';
   document.getElementById('msSig').textContent = s.signal||'—';
   document.getElementById('msSig').style.color = s.signal_color||'#94a3b8';
@@ -1394,7 +1615,7 @@ async function openM(sym) {
   const gc =grd.startsWith('A')?'var(--green)':grd.startsWith('B')?'var(--blue)':grd.startsWith('C')?'var(--amber)':'var(--red)';
   document.getElementById('msFG').textContent  = grd;
   document.getElementById('msFG').style.color  = gc;
-  document.getElementById('mFtL').textContent  = '52W ₹'+fN(s.week52_low)+' – ₹'+fN(s.week52_high)+' · '+s.model;
+  document.getElementById('mFtL').innerHTML   = '52W ₹'+fN(s.week52_low)+' – ₹'+fN(s.week52_high)+' · '+(s.model||'—');
 
   switchT('simulation');
   A.curStock=s;
@@ -1406,14 +1627,17 @@ async function openM(sym) {
   if(full){
     A.curStock=full;
     fillFund(full);
-    // Render active tab charts only (avoid rendering hidden canvas at 0x0)
-    const activeTab=document.querySelector('.m-tab.active')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1]||'simulation';
+    // Render charts after a tick to ensure DOM is ready
     setTimeout(()=>{
       renderSimCharts(full);
       fillTech(full);
       fillRisk(full);
-      renderInsightCharts(full);
-    },80);
+      // Only render insight charts if that tab is active, else defer to switchT
+      const activeTab=document.querySelector('.m-tab.active')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1]||'simulation';
+      if(activeTab==='insights') renderInsightCharts(full);
+      // Always pre-cache so switching tab works instantly
+      A._pendingInsightStock = full;
+    },100);
   }
 }
 
@@ -1526,7 +1750,7 @@ function switchT(name) {
     if(name==='chart'&&A.curStock) loadTV(A.curStock.symbol);
     if(name==='simulation'&&A.curStock) renderSimCharts(A.curStock);
     if(name==='risk'&&A.curStock) { fillRisk(A.curStock); }
-    if(name==='insights'&&A.curStock) { fillInsight(A.curStock); renderInsightCharts(A.curStock); }
+    if(name==='insights') { const st=A.curStock||A._pendingInsightStock; if(st){fillInsight(st);setTimeout(()=>renderInsightCharts(st),60);} }
     if(name==='technical'&&A.curStock) fillTech(A.curStock);
   }, 60);
 }
@@ -1666,8 +1890,8 @@ function fillTech(s) {
     {l:'MACD',v:s.macd?.toFixed(3)||'—',sig:s.macd_cross,cls:s.macd_cross==='Bullish'?'sig-bullish':'sig-bearish'},
     {l:'Bollinger Band',v:(s.bb_position*100)?.toFixed(0)+'%'||'—',sig:s.bb_signal,cls:s.bb_position<0.25?'sig-bullish':s.bb_position>0.8?'sig-bearish':'sig-neutral'},
     {l:'Stochastic %K',v:s.stoch_k?.toFixed(1)||'—',sig:s.stoch_signal,cls:s.stoch_signal==='Oversold'?'sig-bullish':s.stoch_signal==='Overbought'?'sig-bearish':'sig-neutral'},
-    {l:'50-day SMA',v:s.sma_50?'&#8377;'+fN(s.sma_50):'—',sig:s.above_sma50?'Price Above':'Price Below',cls:s.above_sma50?'sig-bullish':'sig-bearish'},
-    {l:'200-day SMA',v:s.sma_200?'&#8377;'+fN(s.sma_200):'—',sig:s.above_sma200?'Price Above':'Price Below',cls:s.above_sma200?'sig-bullish':'sig-bearish'},
+    {l:'50-day SMA',v:s.sma_50?'₹'+fN(s.sma_50):'—',sig:s.above_sma50?'Price Above':'Price Below',cls:s.above_sma50?'sig-bullish':'sig-bearish'},
+    {l:'200-day SMA',v:s.sma_200?'₹'+fN(s.sma_200):'—',sig:s.above_sma200?'Price Above':'Price Below',cls:s.above_sma200?'sig-bullish':'sig-bearish'},
     {l:'Golden Cross',v:s.golden_cross?'Active':'Not Active',sig:s.golden_cross?'Bullish Signal':'Not Active',cls:s.golden_cross?'sig-bullish':'sig-neutral'},
     {l:'Volume Ratio',v:s.vol_ratio?.toFixed(2)||'—',sig:s.vol_trend||'—',cls:s.vol_ratio>1.2?'sig-bullish':s.vol_ratio<0.8?'sig-bearish':'sig-neutral'},
     {l:'ATR %',v:s.atr_pct?.toFixed(2)+'%'||'—',sig:'Daily Range %',cls:'sig-neutral'},
@@ -1766,7 +1990,7 @@ function fillFund(s) {
   document.getElementById('fVal').innerHTML=mk([['P/E',fmt(s.pe_ratio)],['P/B',fmt(s.pb_ratio)],['EPS',fmt(s.eps,'₹')],['Book Value',fmt(s.book_value,'₹')],['Mkt Cap',fmt(s.market_cap,'₹')],['Beta (Nifty)',s.beta_nifty?.toFixed(3)||'—']]);
   document.getElementById('fProf').innerHTML=mk([['ROE',fmt(s.roe*100||null,'','%')],['ROA',fmt(s.roa*100||null,'','%')],['Net Income',fmt(s.net_income,'₹')],['Revenue',fmt(s.revenue,'₹')],['Div Yield',fmt(s.dividend_yield*100||null,'','%')]]);
   document.getElementById('fHealth').innerHTML=mk([['Debt/Equity',fmt(s.debt_equity)],['Current Ratio',fmt(s.current_ratio)],['Employees',s.employees?.toLocaleString()||'—'],['Website',s.website?`<a href="${s.website}" target="_blank" style="color:var(--blue)">${s.website.replace('https://','').slice(0,22)}</a>`:'—']]);
-  document.getElementById('fMkt').innerHTML=mk([['52W High','&#8377;'+fN(s.week52_high)],['52W Low','&#8377;'+fN(s.week52_low)],['Mom 1M',fN(s.mom_1m,1)+'%'],['Mom 3M',fN(s.mom_3m,1)+'%'],['Mom 1Y',fN(s.mom_1y,1)+'%'],['Drift',s.drift_method||'—']]);
+  document.getElementById('fMkt').innerHTML=mk([['52W High','₹'+fN(s.week52_high)],['52W Low','₹'+fN(s.week52_low)],['Mom 1M',fN(s.mom_1m,1)+'%'],['Mom 3M',fN(s.mom_3m,1)+'%'],['Mom 1Y',fN(s.mom_1y,1)+'%'],['Drift',s.drift_method||'—']]);
 }
 
 function fillRisk(s) {
@@ -1830,7 +2054,7 @@ function renderInsightCharts(s) {
   const dc = document.getElementById('distC');
   if (dc && s.histogram) {
     if (A.charts.dist) { try{A.charts.dist.destroy();}catch{} }
-    const hi = s.histogram;
+    const hi = s.histogram || (A.chartsData?.[s.symbol]?.histogram);
     A.charts.dist = new Chart(dc, {type:'bar',
       data:{labels:hi.labels||[], datasets:[
         {label:'Simulated',data:hi.counts||[],backgroundColor:'rgba(79,142,247,.35)',borderColor:'rgba(79,142,247,.7)',borderWidth:1},
