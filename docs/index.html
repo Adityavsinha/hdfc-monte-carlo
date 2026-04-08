@@ -572,7 +572,7 @@ footer{background:var(--white);border-top:1px solid var(--border);padding:20px 2
   <!-- ══ SCREENER ══ -->
   <div id="sec-screener" style="display:none">
     <div class="scr-note">
-      <strong>NSE 500 Screener</strong> — EOD data (price, fundamentals, 52W) updated daily at 6:30 PM IST via yfinance. Stocks marked <strong>MC</strong> have full Monte Carlo + Technical analysis.
+      <strong>NSE 500 Screener</strong> 
     </div>
     <div class="ctrl">
       <div class="search-box">
@@ -580,7 +580,7 @@ footer{background:var(--white);border-top:1px solid var(--border);padding:20px 2
         <input class="search-inp" id="sSrch" placeholder="Search 500+ NSE stocks..." oninput="applyS()">
       </div>
       <div class="chips">
-        <button class="chip active" onclick="setDSec(this,'all')">All</button>
+        <button class="chip active" onclick="setSS(this,'all')">All</button>
         <button class="chip" onclick="setSS(this,'Financial Services')">Financials</button>
         <button class="chip" onclick="setSS(this,'Technology')">Technology</button>
         <button class="chip" onclick="setSS(this,'Consumer Cyclical')">Consumer Cyclical</button>
@@ -1546,7 +1546,7 @@ const TV_MAP = {
 
 function getTVSym(sym) {
   const mapped = TV_MAP[sym] || sym.replace(/[^A-Z0-9]/g,'');
-  return 'NSE:' + mapped;
+  return 'BSE:' + mapped;
 }
 
 // Fallback: use TradingView iframe embed (works without tv.js restrictions)
