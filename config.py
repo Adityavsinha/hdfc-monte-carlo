@@ -18,6 +18,11 @@ BUY_PROB_THRESHOLD    = 0.60   # P(gain) > 60% → BUY
 RISKY_VAR_THRESHOLD   = 0.20   # VaR > 20% → RISKY
 HOLD_SHARPE_MIN       = 0.3    # Sharpe > 0.3 → HOLD eligible
 
+# ── Regime Detection ─────────────────────────
+REGIME_LOOKBACK_DAYS   = 756   # HMM training window (~3 years)
+REGIME_MIN_DATA_DAYS   = 252   # Minimum data required
+REGIME_BULL_THRESHOLD  = 0.60  # Bull probability > 60% = Bull regime
+
 # ── Extended Stock Universe (NSE) ─────────────
 # This is the full universe shown in the screener
 # Quant engine only processes top 100 by momentum/volume

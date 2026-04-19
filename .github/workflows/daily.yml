@@ -32,16 +32,19 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install yfinance pandas numpy scipy statsmodels arch requests matplotlib openpyxl
+          pip install yfinance pandas numpy scipy statsmodels arch requests \
+            matplotlib openpyxl hmmlearn vaderSentiment feedparser python-dotenv
           echo "✅ Dependencies installed"
 
-      - name: Verify scripts
+      - name: Verify scripts exist
         run: |
           test -f scripts/run_pipeline.py   && echo "✅ run_pipeline.py"   || (echo "❌ MISSING" && exit 1)
           test -f scripts/quant_engine.py   && echo "✅ quant_engine.py"   || (echo "❌ MISSING" && exit 1)
           test -f scripts/data_ingestion.py && echo "✅ data_ingestion.py" || (echo "❌ MISSING" && exit 1)
           test -f scripts/config.py         && echo "✅ config.py"         || (echo "❌ MISSING" && exit 1)
           test -f scripts/fetch_prices.py   && echo "✅ fetch_prices.py"   || (echo "❌ MISSING" && exit 1)
+          test -f scripts/backtest.py       && echo "✅ backtest.py"       || echo "⚠️  backtest.py missing (optional)"
+          test -f scripts/post_telegram.py  && echo "✅ post_telegram.py"  || echo "⚠️  post_telegram.py missing (optional)"
 
       - name: Step 1 — Fetch Nifty 500 screener data
         working-directory: scripts
@@ -55,23 +58,54 @@ jobs:
         run: |
           echo "Running Monte Carlo on Nifty 100..."
           python run_pipeline.py
-          echo "✅ simulation pipeline done"
+          echo "✅ Simulation pipeline done"
 
-      - name: Verify outputs
+      - name: Step 3 — Store today's signals for backtesting
+        working-directory: scripts
+        run: |
+          if [ -f backtest.py ]; then
+            python backtest.py store
+            echo "✅ Signals stored for backtesting"
+          fi
+
+      - name: Step 4 — Evaluate backtest (30-day lookback)
+        working-directory: scripts
+        run: |
+          if [ -f backtest.py ]; then
+            python backtest.py evaluate 30
+            python backtest.py report
+            echo "✅ Backtest evaluated"
+          fi
+
+      - name: Step 5 — Post to Telegram
+        working-directory: scripts
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+        run: |
+          if [ -f post_telegram.py ]; then
+            python post_telegram.py
+            echo "✅ Telegram message sent"
+          fi
+
+      - name: Verify all outputs
         run: |
           echo "=== docs/ outputs ==="
-          ls -lh docs/*.json 2>/dev/null
-          test -f docs/screener_data.json && echo "✅ screener_data.json — $(du -sh docs/screener_data.json | cut -f1)" || echo "❌ screener_data.json MISSING"
-          test -f docs/summary.json       && echo "✅ summary.json"       || echo "❌ summary.json MISSING"
-          test -f docs/metrics.json       && echo "✅ metrics.json"       || echo "❌ metrics.json MISSING"
-          test -f docs/charts.json        && echo "✅ charts.json"        || echo "❌ charts.json MISSING"
+          ls -lh docs/*.json 2>/dev/null || echo "No JSON files"
+          test -f docs/screener_data.json   && echo "✅ screener_data.json — $(du -sh docs/screener_data.json | cut -f1)"     || echo "❌ screener_data.json MISSING"
+          test -f docs/summary.json         && echo "✅ summary.json — $(du -sh docs/summary.json | cut -f1)"                 || echo "❌ summary.json MISSING"
+          test -f docs/metrics.json         && echo "✅ metrics.json"         || echo "❌ metrics.json MISSING"
+          test -f docs/charts.json          && echo "✅ charts.json"          || echo "❌ charts.json MISSING"
+          test -f docs/signal_history.json  && echo "✅ signal_history.json"  || echo "⚠️  signal_history.json (will appear after first run)"
+          test -f docs/backtest_results.json && echo "✅ backtest_results.json" || echo "⚠️  backtest_results.json (needs 30 days)"
 
-      - name: Cleanup
+      - name: Cleanup temp files
         run: |
           find . -name "__pycache__" -not -path "./.git/*" -exec rm -rf {} + 2>/dev/null || true
           find . -name "*.pyc" -delete 2>/dev/null || true
+          find . -name "*.log" -not -path "./.git/*" -delete 2>/dev/null || true
 
-      - name: Commit and push
+      - name: Commit and push all outputs
         run: |
           git config --global user.name  "QuantEdge Bot"
           git config --global user.email "bot@quantedgeanalytics.co.in"
@@ -80,10 +114,10 @@ jobs:
           git checkout main
           git add docs/
           if git diff --staged --quiet; then
-            echo "Nothing to commit — touching timestamp"
+            echo "No changes — adding timestamp"
             echo "$(date +'%d %b %Y %H:%M:%S IST')" > docs/last_updated.txt
             git add docs/last_updated.txt
           fi
           git commit -m "📊 Daily update: $(date +'%d %b %Y %H:%M IST')" || echo "Nothing to commit"
           git push origin main
-          echo "✅ All data pushed to GitHub Pages"
+          echo "✅ All data pushed — website updates in 2 min"
