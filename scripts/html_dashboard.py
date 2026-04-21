@@ -445,6 +445,12 @@ footer { background:var(--white);border-top:1px solid var(--border);padding:20px
   .wl-panel{width:100%} .hd{display:none}
 }
 </style>
+
+<!-- Vercel Web Analytics -->
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="https://cdn.vercel-insights.com/v1/script.js"></script>
 </head>
 <body>
 
