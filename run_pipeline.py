@@ -84,8 +84,16 @@ def main():
     # All symbols to process
     all_symbols = [s["symbol"] for s in nifty50_stocks]
 
-    # ── 2. Quick data fetch for all stocks (features only) ──
-    logger.info(f"\n[2/5] Quick feature scan for stock selection...")
+    # ── 2. Fetch Nifty 50 data for regime detection ──
+    logger.info(f"\n[2/5] Fetching Nifty 50 data for regime detection...")
+    nifty_df = fetch_stock_data("NIFTY", years=3)
+    nifty_returns = None
+    if nifty_df is not None and "log_returns" in nifty_df.columns:
+        nifty_returns = nifty_df["log_returns"]
+        logger.info(f"  → Nifty data: {len(nifty_returns)} days")
+
+    # ── 3. Quick data fetch for all stocks (features only) ──
+    logger.info(f"\n[3/5] Quick feature scan for stock selection...")
     quick_features = {}
     for sym in all_symbols:
         try:
@@ -112,6 +120,13 @@ def main():
 
     # ── 4. Full quant pipeline on selected stocks ──
     logger.info(f"\n[4/5] Running full quant pipeline on {len(selected)} stocks...")
+    
+    # Get market regime info (computed once for all stocks)
+    regime_info = {"regime": "Unknown", "bull_prob": 0.5}
+    if nifty_returns is not None:
+        from quant_engine import detect_market_regime
+        regime_info = detect_market_regime(nifty_returns)
+        logger.info(f"  → Market Regime: {regime_info.get('regime', 'Unknown')} (bull_prob: {regime_info.get('bull_prob', 0.5):.1%})")
     results = []
     failed  = []
 
@@ -138,8 +153,8 @@ def main():
         if not fin_info.get("sector"):
             fin_info["sector"] = stock_meta.get("sector", SECTOR_MAP.get(sym, "Other"))
 
-        # Run pipeline
-        result = run_full_pipeline(sym, features, fin_info)
+        # Run pipeline (with nifty returns for regime detection)
+        result = run_full_pipeline(sym, features, fin_info, nifty_returns)
 
         if result:
             results.append(result)

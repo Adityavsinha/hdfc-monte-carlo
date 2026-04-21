@@ -4,23 +4,603 @@ scripts/quant_engine.py
 Full institutional-grade quant pipeline:
   1. ARIMA forecast → drift (μ)
   2. GARCH volatility → σ
-  3. Monte Carlo GBM simulation
-  4. Risk engine (VaR, CVaR, Sharpe, Max Drawdown)
-  5. Signal engine (BUY / HOLD / RISKY)
-  6. Mispricing indicator
+  3. Correlated Monte Carlo simulation (with Cholesky decomposition)
+  4. Fama-French 3-Factor Model for drift estimation
+  5. Market Regime Detection (HMM) for regime-aware signals
+  6. Risk engine (VaR, CVaR, Sharpe, Max Drawdown)
+  7. Signal engine (BUY / HOLD / RISKY)
+  8. Mispricing indicator
+  9. Earnings risk flag
+  10. Sentiment score from news
+  11. Options implied volatility
+  12. Backtesting engine for signal accuracy tracking
 """
 
 import numpy as np
 import pandas as pd
 import warnings
 import logging
+import json
+from datetime import datetime, timedelta
+from pathlib import Path
 from scipy.stats import t as student_t
 from scipy.stats import norm
 from config import (N_SIMULATIONS, HORIZON_DAYS, RISK_FREE_RATE, T_DOF,
-                    BUY_PROB_THRESHOLD, RISKY_VAR_THRESHOLD, HOLD_SHARPE_MIN)
+                    BUY_PROB_THRESHOLD, RISKY_VAR_THRESHOLD, HOLD_SHARPE_MIN,
+                    REGIME_LOOKBACK_DAYS, REGIME_MIN_DATA_DAYS, REGIME_BULL_THRESHOLD)
 
 warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
+
+# Global regime state (cached)
+_regime_cache = {"regime": None, "bull_prob": 0.5, "drift_adj": 0.0, "last_update": None}
+
+
+# ════════════════════════════════════════════
+#  CORRELATED MONTE CARLO (Cholesky decomposition)
+# ════════════════════════════════════════════
+
+def correlated_monte_carlo(stocks_data: dict, nifty_returns: pd.Series, N: int = 5000, T: int = 252) -> dict:
+    """
+    Simulate all stocks together using their real correlation structure.
+    Uses Cholesky decomposition on the return covariance matrix.
+    
+    Args:
+        stocks_data: dict of {symbol: {'log_returns': pd.Series, 'mu_daily': float, 'sigma_daily': float, 'price': float}}
+        nifty_returns: Nifty 50 returns for market correlation
+        N: number of simulations
+        T: time horizon in days
+    
+    Returns:
+        dict of {symbol: np.ndarray} with simulated paths (T+1 x N)
+    """
+    symbols = list(stocks_data.keys())
+    n = len(symbols)
+    
+    if n < 2:
+        # Fallback to independent simulation for single stock
+        sym = symbols[0]
+        paths = run_monte_carlo(
+            stocks_data[sym]['price'],
+            stocks_data[sym]['mu_daily'],
+            stocks_data[sym]['sigma_daily'],
+            T=T, N=N
+        )
+        return {sym: paths}
+    
+    # Build return matrix (T_hist × n_stocks)
+    min_len = min(len(stocks_data[s]['log_returns'].dropna()) for s in symbols)
+    lookback = min(min_len, 504)  # Max 2 years of data
+    
+    returns_matrix = np.column_stack([
+        stocks_data[s]['log_returns'].values[-lookback:]
+        for s in symbols
+    ])
+    
+    # Covariance matrix from historical returns
+    cov_matrix = np.cov(returns_matrix.T)
+    
+    # Add small regularization for numerical stability
+    cov_matrix = cov_matrix + 1e-8 * np.eye(n)
+    
+    try:
+        # Cholesky decomposition — creates correlated shocks
+        L = np.linalg.cholesky(cov_matrix)
+    except np.linalg.LinAlgError:
+        logger.warning("  Cholesky failed, using independent simulation")
+        # Fallback to independent
+        results = {}
+        for sym in symbols:
+            results[sym] = run_monte_carlo(
+                stocks_data[sym]['price'],
+                stocks_data[sym]['mu_daily'],
+                stocks_data[sym]['sigma_daily'],
+                T=T, N=N
+            )
+        return results
+    
+    # Generate correlated random shocks
+    rng = np.random.default_rng(42)
+    Z_ind = rng.standard_normal((T, N, n))  # independent
+    Z_cor = Z_ind @ L.T                      # correlated
+    
+    # Simulate correlated paths for each stock
+    results = {}
+    for i, sym in enumerate(symbols):
+        mu    = stocks_data[sym]['mu_daily']
+        sigma = stocks_data[sym]['sigma_daily']
+        S0    = stocks_data[sym]['price']
+        
+        shocks = mu - 0.5 * sigma**2 + sigma * Z_cor[:, :, i]
+        paths  = S0 * np.exp(np.cumsum(shocks, axis=0))
+        results[sym] = paths
+    
+    logger.debug(f"    Correlated Monte Carlo: {n} stocks, {N} paths")
+    return results
+
+
+def compute_portfolio_var(stocks_data: dict, final_prices: dict, weights: dict = None) -> dict:
+    """
+    Compute portfolio-level VaR using correlated simulations.
+    
+    Args:
+        stocks_data: dict of stock data
+        final_prices: dict of {symbol: final_price_array}
+        weights: dict of {symbol: weight}, default equal weight
+    
+    Returns:
+        dict with portfolio VaR metrics
+    """
+    symbols = list(final_prices.keys())
+    n = len(symbols)
+    
+    if weights is None:
+        weights = {s: 1.0/n for s in symbols}
+    
+    # Calculate portfolio returns for each simulation
+    n_sims = len(next(iter(final_prices.values())))
+    portfolio_returns = np.zeros(n_sims)
+    
+    for sym in symbols:
+        S0 = stocks_data[sym]['price']
+        ret = (final_prices[sym] - S0) / S0
+        portfolio_returns += weights.get(sym, 0) * ret
+    
+    # Portfolio VaR
+    var_95 = float(-np.percentile(portfolio_returns, 5))
+    var_99 = float(-np.percentile(portfolio_returns, 1))
+    
+    # CVaR
+    tail_mask = portfolio_returns <= np.percentile(portfolio_returns, 5)
+    cvar_95 = float(-portfolio_returns[tail_mask].mean())
+    
+    return {
+        "portfolio_var_95": round(var_95, 4),
+        "portfolio_var_99": round(var_99, 4),
+        "portfolio_cvar_95": round(cvar_95, 4),
+    }
+
+
+# ════════════════════════════════════════════
+#  FAMA-FRENCH 3-FACTOR MODEL
+# ════════════════════════════════════════════
+
+def fama_french_drift(
+    log_returns: pd.Series,
+    nifty_returns: pd.Series,
+    smb_returns: pd.Series = None,
+    hml_returns: pd.Series = None,
+    beta_nifty: float = 1.0
+) -> float:
+    """
+    μ = Rf + β_market×ERP + β_size×SMB + β_value×HML
+    
+    Computes expected daily return using Fama-French 3-factor model.
+    If SMB/HML not provided, estimates from Nifty data.
+    
+    Args:
+        log_returns: Stock log returns
+        nifty_returns: Nifty 50 returns (market factor)
+        smb_returns: Small Minus Big returns (size factor), optional
+        hml_returns: High Minus Low returns (value factor), optional
+        beta_nifty: Stock's beta vs Nifty
+    
+    Returns:
+        Expected daily return (drift)
+    """
+    try:
+        from sklearn.linear_model import LinearRegression
+        
+        # Use last 504 days (2 years) for regression
+        n = min(len(log_returns), len(nifty_returns), 504)
+        
+        if smb_returns is None or hml_returns is None:
+            # Estimate SMB/HML from Nifty data (simplified)
+            # In production, would use Nifty 500 data
+            smb_returns = nifty_returns * 0.3  # Approximate small cap premium
+            hml_returns = nifty_returns * 0.2  # Approximate value premium
+        
+        # Align data
+        df = pd.DataFrame({
+            'stock': log_returns.values[-n:],
+            'market': nifty_returns.values[-n:],
+            'smb': smb_returns.values[-n:],
+            'hml': hml_returns.values[-n:],
+        }).dropna()
+        
+        if len(df) < 60:
+            # Fallback to CAPM
+            return float(log_returns.mean())
+        
+        X = df[['market', 'smb', 'hml']].values
+        y = df['stock'].values
+        
+        reg = LinearRegression().fit(X, y)
+        b_mkt, b_smb, b_hml = reg.coef_
+        
+        # Expected daily return components
+        ERP = 0.065 / 252        # Equity risk premium daily (~6.5% annual)
+        SMB_premium = 0.03 / 252  # Small cap premium ~3%/yr
+        HML_premium = 0.04 / 252  # Value premium ~4%/yr
+        
+        # Fama-French expected return
+        mu_daily = (0.065/252) + b_mkt * ERP + b_smb * SMB_premium + b_hml * HML_premium
+        
+        # Sanity check — clamp to reasonable range
+        mu_daily = float(np.clip(mu_daily, -0.05/252, 0.25/252))
+        
+        logger.debug(f"    FF3 μ = {mu_daily:.6f} (β_mkt={b_mkt:.2f}, β_smb={b_smb:.2f}, β_hml={b_hml:.2f})")
+        return mu_daily
+        
+    except Exception as e:
+        logger.debug(f"    FF3 failed ({e}), using CAPM drift")
+        # Fallback to CAPM
+        ERP = 0.065 / 252
+        return beta_nifty * ERP
+
+
+# ════════════════════════════════════════════
+#  MARKET REGIME DETECTION (Hidden Markov Model)
+# ════════════════════════════════════════════
+
+def detect_market_regime(nifty_returns: pd.Series) -> dict:
+    """
+    2-state HMM: Bull (high return, low vol) vs Bear (low return, high vol)
+    Returns current regime probability and adjusts drift accordingly.
+    
+    Args:
+        nifty_returns: Nifty 50 daily returns
+    
+    Returns:
+        dict with regime, bull_prob, drift_adj
+    """
+    global _regime_cache
+    
+    # Check cache (valid for 1 hour)
+    if _regime_cache["last_update"]:
+        cache_age = datetime.now() - _regime_cache["last_update"]
+        if cache_age < timedelta(hours=1):
+            return {
+                "regime": _regime_cache["regime"],
+                "bull_prob": _regime_cache["bull_prob"],
+                "drift_adj": _regime_cache["drift_adj"]
+            }
+    
+    try:
+        from hmmlearn import hmm
+        
+        # Use last 3 years of data
+        returns = nifty_returns.values[-REGIME_LOOKBACK_DAYS:].reshape(-1, 1)
+        returns = returns[~np.isnan(returns)]
+        
+        if len(returns) < REGIME_MIN_DATA_DAYS:
+            return {"regime": "Unknown", "bull_prob": 0.5, "drift_adj": 0.0}
+        
+        # Fit Gaussian HMM with 2 states
+        model = hmm.GaussianHMM(
+            n_components=2,
+            covariance_type="full",
+            n_iter=100,
+            random_state=42
+        )
+        model.fit(returns)
+        
+        # Get current state probability
+        states = model.predict(returns)
+        current_state = states[-1]
+        
+        # Identify which state is "bull" (higher mean)
+        means = [model.means_[i][0] for i in range(2)]
+        variances = [model.covars_[i][0][0] for i in range(2)]
+        bull_state = np.argmax(means)
+        
+        is_bull = (current_state == bull_state)
+        bull_prob = float(model.predict_proba(returns)[-1][bull_state])
+        
+        # Regime-based drift adjustment
+        if is_bull:
+            drift_adj = 0.02 / 252   # Bull regime: optimistic bias
+        else:
+            drift_adj = -0.03 / 252  # Bear regime: pessimistic
+        
+        # Update cache
+        _regime_cache = {
+            "regime": "Bull" if is_bull else "Bear",
+            "bull_prob": bull_prob,
+            "drift_adj": drift_adj,
+            "last_update": datetime.now()
+        }
+        
+        logger.info(f"    Regime: {'Bull' if is_bull else 'Bear'} (prob: {bull_prob:.1%})")
+        
+        return {
+            "regime": "Bull" if is_bull else "Bear",
+            "bull_prob": bull_prob,
+            "drift_adj": drift_adj,
+            "bull_mean": float(means[bull_state]),
+            "bear_mean": float(means[1 - bull_state]),
+            "bull_vol": float(np.sqrt(variances[bull_state])),
+            "bear_vol": float(np.sqrt(variances[1 - bull_state])),
+        }
+        
+    except Exception as e:
+        logger.debug(f"    HMM failed ({e}), using neutral regime")
+        return {"regime": "Unknown", "bull_prob": 0.5, "drift_adj": 0.0}
+
+
+# ════════════════════════════════════════════
+#  EARNINGS & CORPORATE ACTION RISK
+# ════════════════════════════════════════════
+
+def get_earnings_risk_flag(symbol: str, price: float = None) -> dict:
+    """
+    Flag stocks with earnings in next 30 days — widen confidence intervals.
+    
+    Args:
+        symbol: Stock symbol (e.g., 'RELIANCE')
+        price: Current price (optional)
+    
+    Returns:
+        dict with earnings risk info
+    """
+    try:
+        import yfinance as yf
+        
+        ticker = yf.Ticker(symbol + ".NS")
+        
+        # Get earnings calendar
+        cal = ticker.calendar
+        if cal is None or cal.empty:
+            return {"has_earnings_soon": False, "vol_multiplier": 1.0}
+        
+        # Next earnings date
+        next_earnings = pd.Timestamp(cal.columns[0])
+        days_to_earn = (next_earnings - pd.Timestamp.today()).days
+        
+        if 0 < days_to_earn < 30:
+            # Get historical earnings moves
+            hist = ticker.earnings_history
+            if hist is not None and not hist.empty:
+                avg_move = hist['surprisePercent'].abs().mean() / 100
+            else:
+                avg_move = 0.07  # Default 7% move
+            
+            return {
+                "has_earnings_soon": True,
+                "days_to_earnings": days_to_earn,
+                "vol_multiplier": 1 + avg_move,
+                "avg_earnings_move": round(avg_move * 100, 1)
+            }
+        
+        return {"has_earnings_soon": False, "vol_multiplier": 1.0}
+        
+    except Exception as e:
+        logger.debug(f"    Earnings check failed for {symbol}: {e}")
+        return {"has_earnings_soon": False, "vol_multiplier": 1.0}
+
+
+# ════════════════════════════════════════════
+#  SENTIMENT SCORE FROM NEWS (Google News + VADER)
+# ════════════════════════════════════════════
+
+def get_sentiment_score(symbol: str, company_name: str = None) -> dict:
+    """
+    Use Google News RSS (free) + VADER sentiment analysis.
+    
+    Args:
+        symbol: Stock symbol
+        company_name: Company name for news search
+    
+    Returns:
+        dict with sentiment score and label
+    """
+    if company_name is None:
+        company_name = symbol
+    
+    try:
+        import feedparser
+        from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+        
+        # Google News RSS query
+        query = company_name.replace(' ', '+')
+        rss_url = f"https://news.google.com/rss/search?q={query}+stock&hl=en-IN&gl=IN&ceid=IN:en"
+        
+        feed = feedparser.parse(rss_url)
+        
+        if not feed.entries:
+            return {"sentiment_score": 0.0, "sentiment_label": "Neutral", "news_count": 0}
+        
+        analyzer = SentimentIntensityAnalyzer()
+        scores = []
+        
+        for entry in feed.entries[:10]:  # Last 10 news items
+            text = entry.title + ' ' + entry.get('summary', '')
+            score = analyzer.polarity_scores(text)['compound']
+            scores.append(score)
+        
+        avg_sentiment = np.mean(scores) if scores else 0
+        
+        return {
+            "sentiment_score": round(avg_sentiment, 3),
+            "sentiment_label": "Positive" if avg_sentiment > 0.1 else 
+                              "Negative" if avg_sentiment < -0.1 else "Neutral",
+            "news_count": len(scores)
+        }
+        
+    except Exception as e:
+        logger.debug(f"    Sentiment check failed for {symbol}: {e}")
+        return {"sentiment_score": 0.0, "sentiment_label": "Neutral", "news_count": 0}
+
+
+# ════════════════════════════════════════════
+#  OPTIONS IMPLIED VOLATILITY (F&O stocks)
+# ════════════════════════════════════════════
+
+def get_implied_volatility(symbol: str) -> float:
+    """
+    For F&O stocks, use actual implied volatility from options.
+    Falls back to GARCH if unavailable.
+    
+    Args:
+        symbol: Stock symbol
+    
+    Returns:
+        Annualized IV or None if unavailable
+    """
+    try:
+        import yfinance as yf
+        
+        ticker = yf.Ticker(symbol + ".NS")
+        
+        if not ticker.options:
+            return None  # No options chain available
+        
+        # Get nearest expiry options chain
+        expiry = ticker.options[0]
+        chain = ticker.option_chain(expiry)
+        spot = ticker.fast_info.last_price
+        
+        # Find ATM call
+        calls = chain.calls
+        atm_idx = (calls['strike'] - spot).abs().idxmin()
+        iv = calls.loc[atm_idx, 'impliedVolatility']
+        
+        # Sanity check
+        if iv and 0.05 < iv < 2.0:
+            logger.debug(f"    IV: {iv:.2%} (ATM)")
+            return float(iv)
+        
+        return None
+        
+    except Exception as e:
+        logger.debug(f"    IV check failed for {symbol}: {e}")
+        return None
+
+
+# ════════════════════════════════════════════
+#  BACKTESTING ENGINE
+# ════════════════════════════════════════════
+
+SIGNALS_HISTORY_FILE = Path("docs/signal_history.json")
+
+def save_signal_for_backtest(symbol: str, signal: str, price: float, date: str = None) -> None:
+    """
+    Save signal to history for backtesting.
+    
+    Args:
+        symbol: Stock symbol
+        signal: Signal string (STRONG BUY, BUY, HOLD, RISKY, AVOID)
+        price: Price at signal time
+        date: Date string (default: today)
+    """
+    if date is None:
+        date = datetime.now().strftime("%Y-%m-%d")
+    
+    # Load existing history
+    history = []
+    if SIGNALS_HISTORY_FILE.exists():
+        try:
+            with open(SIGNALS_HISTORY_FILE) as f:
+                history = json.load(f)
+        except:
+            history = []
+    
+    # Add new signal
+    history.append({
+        "date": date,
+        "symbol": symbol,
+        "signal": signal,
+        "price_at_signal": round(price, 2)
+    })
+    
+    # Keep last 2 years of history
+    cutoff = (datetime.now() - timedelta(days=730)).strftime("%Y-%m-%d")
+    history = [h for h in history if h["date"] >= cutoff]
+    
+    # Save
+    with open(SIGNALS_HISTORY_FILE, "w") as f:
+        json.dump(history, f, indent=2)
+
+
+def backtest_signals(price_data: dict, holding_days: int = 30) -> dict:
+    """
+    For each past signal, measure actual return over next N days.
+    
+    Args:
+        price_data: dict of {symbol: pd.Series with prices}
+        holding_days: Days to hold before measuring return
+    
+    Returns:
+        dict with accuracy stats per signal type
+    """
+    if not SIGNALS_HISTORY_FILE.exists():
+        return {"error": "No signal history found"}
+    
+    try:
+        with open(SIGNALS_HISTORY_FILE) as f:
+            history = json.load(f)
+    except:
+        return {"error": "Could not load signal history"}
+    
+    results = []
+    
+    for record in history:
+        sym = record["symbol"]
+        date = record["date"]
+        sig = record["signal"]
+        p_buy = record["price_at_signal"]
+        
+        if sym not in price_data:
+            continue
+        
+        # Get price N days later
+        prices = price_data[sym]
+        try:
+            future_prices = prices.loc[date:]
+            if len(future_prices) > holding_days:
+                p_future = future_prices.iloc[holding_days]
+                actual_return = (p_future - p_buy) / p_buy * 100
+                
+                # Determine if signal was "correct"
+                is_buy_signal = "BUY" in sig
+                is_correct = (is_buy_signal and actual_return > 0) or \
+                            (sig == "AVOID" and actual_return < 0)
+                
+                results.append({
+                    "signal": sig,
+                    "actual_return": round(actual_return, 2),
+                    "correct": is_correct,
+                    "days": holding_days
+                })
+        except:
+            continue
+    
+    if not results:
+        return {"error": "Insufficient data for backtest"}
+    
+    # Aggregate stats per signal type
+    df = pd.DataFrame(results)
+    stats = df.groupby("signal").agg({
+        "actual_return": ["mean", "std", "count"],
+        "correct": "mean"
+    }).round(3)
+    
+    # Convert to dict
+    stats_dict = {}
+    for sig in stats.index:
+        stats_dict[sig] = {
+            "avg_return": float(stats.loc[sig, ("actual_return", "mean")]),
+            "std_return": float(stats.loc[sig, ("actual_return", "std")]),
+            "count": int(stats.loc[sig, ("actual_return", "count")]),
+            "accuracy": float(stats.loc[sig, ("correct", "mean")])
+        }
+    
+    return stats_dict
+
+
+# ════════════════════════════════════════════
+#  ARIMA FORECAST (μ estimation)
+# ════════════════════════════════════════════
 
 
 # ════════════════════════════════════════════
@@ -280,27 +860,62 @@ def run_full_pipeline(
     symbol   : str,
     features : dict,
     fin_info : dict,
+    nifty_returns : pd.Series = None,
 ) -> dict | None:
     """
-    Runs complete quant pipeline for one stock.
+    Runs complete quant pipeline for one stock with all advanced features.
     Returns full metrics dict ready for JSON output.
+    
+    Features integrated:
+    - Fama-French 3-Factor Model for drift
+    - Market Regime Detection (HMM)
+    - Earnings Risk Flag
+    - Sentiment Score from News
+    - Options Implied Volatility
+    - Backtesting signal storage
     """
     try:
         log_returns   = features["log_returns"]
         S0            = features["current_price"]
         sigma_ewma    = features["sigma_daily"]
+        beta          = fin_info.get("beta", 1.0)
 
         if len(log_returns) < 100:
             logger.warning(f"  {symbol}: not enough returns ({len(log_returns)})")
             return None
 
-        # ── 1. ARIMA drift ──────────────────────
-        logger.info(f"    ARIMA...")
-        mu = arima_drift(log_returns)
+        # ── 0. Market Regime Detection ──────────
+        regime_info = {"regime": "Unknown", "bull_prob": 0.5, "drift_adj": 0.0}
+        if nifty_returns is not None and len(nifty_returns) > 252:
+            logger.info(f"    Regime Detection...")
+            regime_info = detect_market_regime(nifty_returns)
+
+        # ── 1. Fama-French 3-Factor drift ───────
+        logger.info(f"    Fama-French 3-Factor...")
+        if nifty_returns is not None and len(nifty_returns) > 100:
+            mu = fama_french_drift(log_returns, nifty_returns, beta_nifty=beta)
+        else:
+            mu = arima_drift(log_returns)
+        
+        # Apply regime adjustment
+        mu = mu + regime_info["drift_adj"]
 
         # ── 2. GARCH volatility ─────────────────
         logger.info(f"    GARCH...")
         sigma = garch_volatility(log_returns)
+        
+        # Try to get IV from options for F&O stocks
+        iv = get_implied_volatility(symbol)
+        if iv is not None:
+            logger.info(f"    Using IV from options: {iv:.2%}")
+            sigma = iv / np.sqrt(252)  # Convert annual IV to daily
+        
+        # Check earnings risk
+        earnings_risk = get_earnings_risk_flag(symbol, S0)
+        if earnings_risk["has_earnings_soon"]:
+            logger.info(f"    Earnings in {earnings_risk['days_to_earnings']} days - widening CI")
+            sigma = sigma * earnings_risk["vol_multiplier"]
+        
         # Blend GARCH with EWMA for stability
         sigma = 0.6 * sigma + 0.4 * sigma_ewma
 
@@ -332,16 +947,27 @@ def run_full_pipeline(
         # ── 6. Mispricing indicator ─────────────
         mispricing = (mean_price - S0) / S0   # + = undervalued
 
-        # ── 7. Scenario medians ─────────────────
+        # ── 7. Sentiment Score ───────────────────
+        logger.info(f"    Sentiment Analysis...")
+        sentiment = get_sentiment_score(symbol, fin_info.get("name"))
+        
+        # Adjust mispricing based on sentiment
+        sentiment_adj = sentiment["sentiment_score"] * 0.05  # Max 5% adjustment
+        mispricing = mispricing + sentiment_adj
+
+        # ── 8. Scenario medians ─────────────────
         def scen(mu_m, sig_m):
             p = run_monte_carlo(S0, mu * mu_m, sigma * sig_m, N=1000)
             return float(np.median(p[-1, :]))
 
-        # ── 8. Signal ───────────────────────────
+        # ── 9. Signal (with sentiment adjustment) ─
         sig_result = generate_signal(
             prob_up, risk["var_95"],
             risk["sharpe"], expected_ret, mispricing
         )
+
+        # ── 10. Save signal for backtesting ─────
+        save_signal_for_backtest(symbol, sig_result["signal"], S0)
 
         return {
             # Identity
@@ -400,6 +1026,7 @@ def run_full_pipeline(
             "mu_arima"        : round(mu, 6),
             "sigma_garch"     : round(sigma, 6),
             "mu_daily"        : round(features["mu_daily"], 6),
+            "mu_fama_french"  : round(mu - regime_info["drift_adj"], 6) if "drift_adj" in regime_info else round(mu, 6),
 
             # Momentum
             "mom_1m"          : round(features["mom_1m"] * 100, 2),
@@ -416,10 +1043,25 @@ def run_full_pipeline(
             "base_median"     : round(scen(1.0, 1.0), 2),
             "bear_median"     : round(scen(0.7, 1.4), 2),
 
+            # Advanced features
+            "regime"          : regime_info.get("regime", "Unknown"),
+            "bull_prob"       : regime_info.get("bull_prob", 0.5),
+            "regime_drift_adj": regime_info.get("drift_adj", 0.0),
+            
+            "earnings_risk"   : earnings_risk.get("has_earnings_soon", False),
+            "days_to_earnings": earnings_risk.get("days_to_earnings", None),
+            "vol_multiplier"  : earnings_risk.get("vol_multiplier", 1.0),
+            
+            "sentiment_score" : sentiment.get("sentiment_score", 0.0),
+            "sentiment_label" : sentiment.get("sentiment_label", "Neutral"),
+            "news_count"      : sentiment.get("news_count", 0),
+            
+            "implied_vol"     : round(iv, 4) if iv else None,
+
             # Meta
             "n_simulations"   : N_SIMULATIONS,
             "horizon_days"    : HORIZON_DAYS,
-            "model"           : "ARIMA-GARCH-GBM-StudentT",
+            "model"           : "ARIMA-GARCH-GBM-StudentT-FF3-HMM",
         }
 
     except Exception as e:
