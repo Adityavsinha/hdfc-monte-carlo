@@ -9,7 +9,7 @@ Stock universe auto-updates from NSE.
 N_SIMULATIONS    = 10_000
 HORIZON_DAYS     = 252
 ROLLING_VOL_WIN  = 63
-RISK_FREE_RATE   = 0.070   # RBI repo rate annualised (April 2026)
+RISK_FREE_RATE   = 0.065   # RBI repo rate annualised
 T_DOF            = 5       # Student-t degrees of freedom
 TOP_N_STOCKS     = 100     # Max stocks for heavy quant computation
 
@@ -17,11 +17,6 @@ TOP_N_STOCKS     = 100     # Max stocks for heavy quant computation
 BUY_PROB_THRESHOLD    = 0.60   # P(gain) > 60% → BUY
 RISKY_VAR_THRESHOLD   = 0.20   # VaR > 20% → RISKY
 HOLD_SHARPE_MIN       = 0.3    # Sharpe > 0.3 → HOLD eligible
-
-# ── Regime Detection ─────────────────────────
-REGIME_LOOKBACK_DAYS   = 756   # HMM training window (~3 years)
-REGIME_MIN_DATA_DAYS   = 252   # Minimum data required
-REGIME_BULL_THRESHOLD  = 0.60  # Bull probability > 60% = Bull regime
 
 # ── Extended Stock Universe (NSE) ─────────────
 # This is the full universe shown in the screener
@@ -78,5 +73,3 @@ SECTOR_MAP = {
     "SIEMENS":"Industrial","ABB":"Industrial","TORNTPHARM":"Pharma",
     "MUTHOOTFIN":"Finance","LUPIN":"Pharma","AMBUJACEM":"Cement",
 }
-
-
