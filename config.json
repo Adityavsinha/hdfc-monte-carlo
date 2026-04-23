@@ -1,8 +1,0 @@
-{
-  "drive_folder_id": "1RNoiVKRH-srEirPApHxpmdC8km_okODi",
-  "spreadsheet_id": "1vaeoRrn6xhINNjD2pGP7r1yFgLobygCod3c5HzK_jck",
-  "ticker": "HDFCBANK.NS",
-  "simulations": 10000,
-  "horizon_days": 252,
-  "auto_schedule": true
-}
