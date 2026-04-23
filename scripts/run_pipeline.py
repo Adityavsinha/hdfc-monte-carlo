@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 from config import TOP_N_STOCKS, NIFTY50_SYMBOLS, SECTOR_MAP
 from data_ingestion import (fetch_live_nifty50, fetch_stock_data,
                              fetch_financial_info, compute_features)
-from quant_engine import run_full_pipeline
+from quant_engine import run_full_pipeline, compute_technical_indicators, compute_fundamental_score
 
 
 def fetch_nifty50_returns():
