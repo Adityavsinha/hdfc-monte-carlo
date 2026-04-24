@@ -7,7 +7,24 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>QuantEdge Analytics — Data. Insights. Advantage.</title>
+<title>QuantEdge Analytics — Quantitative Stock Analysis India | Nifty 100 Monte Carlo</title>
+<meta name="description" content="QuantEdge Analytics: Free institutional-grade quantitative stock analysis for Indian markets. Monte Carlo simulation, GARCH volatility, CAPM, technical analysis for Nifty 50 and Nifty 100 stocks.">
+<meta name="keywords" content="QuantEdge Analytics, quantedge, quant analytics india, nifty stock analysis, monte carlo simulation india, nifty 50 prediction, stock analysis tool india, GARCH model indian stocks, technical analysis NSE">
+<meta name="author" content="QuantEdge Analytics">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://quantedgeanalytics.co.in/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="QuantEdge Analytics — Quantitative Stock Analysis India">
+<meta property="og:description" content="Institutional-grade Monte Carlo and GARCH stock analysis for Nifty 100. Free quantitative analytics for Indian equities.">
+<meta property="og:url" content="https://quantedgeanalytics.co.in/">
+<meta property="og:site_name" content="QuantEdge Analytics">
+<meta property="og:image" content="https://quantedgeanalytics.co.in/logo.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="QuantEdge Analytics — Nifty 100 Quant Analysis">
+<meta name="twitter:description" content="Free institutional-grade Monte Carlo simulation for Indian stocks. GARCH, CAPM, Technical Analysis.">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"QuantEdge Analytics","url":"https://quantedgeanalytics.co.in","description":"Institutional-grade quantitative stock analytics platform for Indian equities — Monte Carlo simulation, GARCH volatility, CAPM, technical analysis for Nifty 100","applicationCategory":"FinanceApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"INR"},"publisher":{"@type":"Organization","name":"QuantEdge Analytics","url":"https://quantedgeanalytics.co.in"}}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -96,7 +113,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter','Plus Jakarta Sa
 }
 .hero-in{position:relative;max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:24px}
 .hero-left h1{font-size:28px;font-weight:800;letter-spacing:-.8px;line-height:1.2;color:var(--text)}
-.hero-left h1 .hl{background:linear-gradient(135deg,#2F80ED,#7C3AED);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-left h1 .hl{color:var(--blue);-webkit-text-fill-color:var(--blue)}
 .hero-left p{font-size:13px;color:var(--text2);margin-top:8px;max-width:440px;line-height:1.7}
 .hero-badges{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
 .hero-badge{background:var(--white);border:1px solid var(--border);box-shadow:var(--sh1);padding:4px 12px;border-radius:20px;font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.3px}
@@ -645,6 +662,75 @@ button, .chip, .nav-btn, .ptab, .m-tab, .wl-btn, .close-x, .vt-btn {
   .page { padding-bottom: 80px; }
   footer { margin-bottom: 56px; }
 }
+
+/* ── SECTION HEADERS (Nifty 50 / Next 50) ── */
+.sec-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px}
+.sec-title{font-size:17px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+.sec-sub{font-size:12px;color:var(--muted);margin-top:4px;font-weight:400}
+.sec-badge-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.index-badge{padding:4px 12px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.2px}
+.index-badge.blue{background:var(--blue-lt);color:var(--blue-d);border:1px solid var(--blue-md)}
+.index-badge.green{background:var(--green-lt);color:var(--green);border:1px solid var(--green-bd)}
+.index-source-tag{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+
+/* ── ZERODHA-STYLE TYPOGRAPHY ── */
+/* Tighter, more professional text sizing */
+.tbl-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.1px}
+.sym-c{font-size:13px;font-weight:700;color:var(--text);letter-spacing:.1px}
+.name-c{font-size:11px;color:var(--muted);margin-top:1px;font-weight:400}
+.price-c{font-size:13px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--text)}
+.price-sub{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:1px}
+
+/* ── ZERODHA-STYLE SIGNAL BADGES ── */
+.sig-sbuy{background:#DCF5EC;color:#059669;border:1px solid #A7F3D0;font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.4px;white-space:nowrap}
+.sig-buy {background:#EBF4FF;color:#1A6FD9;border:1px solid #BFDBFE;font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.4px;white-space:nowrap}
+.sig-hold{background:#FFFBEB;color:#D97706;border:1px solid #FDE68A;font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.4px;white-space:nowrap}
+.sig-risky{background:#FEF3C7;color:#B45309;border:1px solid #FCD34D;font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.4px;white-space:nowrap}
+.sig-avoid{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.4px;white-space:nowrap}
+
+/* ── ZERODHA-STYLE TABLE ROWS ── */
+tbody tr:hover{background:#F5F8FF}
+tbody tr:hover .arr{opacity:1}
+td{padding:11px 14px;vertical-align:middle;font-size:13px}
+thead th{padding:10px 14px;font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;background:var(--s1);border-bottom:1px solid var(--border)}
+
+/* ── HERO ── */
+.hero{background:linear-gradient(160deg,#F0F7FF 0%,#FAFCFF 50%,#EEF4FF 100%);border-bottom:1px solid var(--border);padding:36px 28px 40px}
+.hero-left h1{font-size:26px;font-weight:700;color:var(--text);letter-spacing:-.5px;line-height:1.25}
+.hero-left p{font-size:13px;color:var(--text2);margin-top:10px;max-width:460px;line-height:1.75;font-weight:400}
+.hst .v{font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text)}
+.hst .l{font-size:10px;color:var(--muted);margin-top:3px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.hero-badge{background:var(--white);border:1px solid var(--border);box-shadow:none;padding:3px 11px;border-radius:4px;font-size:10px;color:var(--text2);font-weight:500;letter-spacing:.2px}
+
+/* ── NAV — Zerodha style ── */
+.nav{background:#fff;border-bottom:1px solid #E5E7EB;height:56px;box-shadow:none}
+.nav-btn{padding:5px 14px;font-size:12px;font-weight:500;color:#6B7280;border-radius:5px}
+.nav-btn.active{background:var(--blue-lt);color:var(--blue-d);font-weight:600;box-shadow:none}
+
+/* ── PAGE TABS ── */
+.page-tabs{margin-bottom:20px}
+.ptab{font-size:12px;font-weight:500;padding:7px 18px}
+
+/* ── KPI CARDS — Zerodha minimal ── */
+.kpi{border-radius:8px;padding:16px 18px;border:1px solid var(--border);box-shadow:none}
+.kpi:hover{box-shadow:0 4px 16px rgba(47,128,237,.10);transform:none;border-color:var(--blue-md)}
+.kpi-v{font-size:20px;font-weight:700}
+.kpi-l{font-size:10px;letter-spacing:.3px}
+
+/* ── CARDS — Zerodha minimal ── */
+.tbl-card{border-radius:8px;box-shadow:none;border:1px solid var(--border)}
+.tbl-top{background:#FAFBFD;border-bottom:1px solid var(--border);padding:12px 18px}
+
+/* ── RET BADGES ── */
+.ret-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace}
+.ret-up{background:#ECFDF5;color:#059669;border:none}
+.ret-dn{background:#FEF2F2;color:#DC2626;border:none}
+
+/* ── Mobile Nifty50/Next50 ── */
+@media(max-width:768px){
+  .sec-header{flex-direction:column}
+  .sec-title{font-size:15px}
+}
 </style>
 </head>
 <body>
@@ -660,14 +746,17 @@ button, .chip, .nav-btn, .ptab, .m-tab, .wl-btn, .close-x, .vt-btn {
     </div>
   </div>
   <div class="nav-mid">
-    <button class="nav-btn active" id="nb-dashboard" onclick="showSec('dashboard')">Dashboard</button>
+    <button class="nav-btn active" id="nb-dashboard" onclick="showSec('dashboard')">All 100 Stocks</button>
+    <button class="nav-btn" id="nb-nifty50"   onclick="showSec('nifty50')">Nifty 50</button>
+    <button class="nav-btn" id="nb-next50"    onclick="showSec('next50')">Nifty Next 50</button>
     <button class="nav-btn" id="nb-screener"  onclick="showSec('screener')">Screener</button>
-    <button class="nav-btn" onclick="toggleProfile()">Portfolio</button>
     <button class="nav-btn" onclick="toggleProfile()">Watchlist</button>
   </div>
   <!-- Mobile nav tabs (shown instead of nav-mid on small screens) -->
   <div class="mob-tabs" id="mobTabs">
-    <button class="mob-tab active" id="mobt-dashboard" onclick="showSec('dashboard')">Dashboard</button>
+    <button class="mob-tab active" id="mobt-dashboard" onclick="showSec('dashboard')">All 100</button>
+    <button class="mob-tab" id="mobt-nifty50" onclick="showSec('nifty50')">Nifty 50</button>
+    <button class="mob-tab" id="mobt-next50" onclick="showSec('next50')">Next 50</button>
     <button class="mob-tab" id="mobt-screener" onclick="showSec('screener')">Screener</button>
   </div>
   <div class="nav-right">
@@ -688,8 +777,8 @@ button, .chip, .nav-btn, .ptab, .m-tab, .wl-btn, .close-x, .vt-btn {
   <div class="hero-grid"></div>
   <div class="hero-in">
     <div class="hero-left">
-      <h1>India's <span class="hl">Quantitative</span><h1>Intelligence Platform</h1>
-      <p>Institutional-grade probabilistic analytics powered by CAPM · GARCH · Monte Carlo · Technical Analysis. Nifty 500 screener with EOD fundamentals. 100 stocks with full simulation.</p>
+      <h1>India's <span class="hl">Quantitative</span> Intelligence Platform</h1>
+      <p>QuantEdge Analytics delivers institutional-grade quantitative research for Indian equity markets. CAPM · GARCH · Monte Carlo simulation · Technical Analysis — built for the retail investor.</p>
       <div class="hero-badges">
         <span class="hero-badge"><span class="dot" style="background:var(--green)"></span>Live Prices</span>
         <span class="hero-badge"><span class="dot" style="background:var(--blue)"></span>Monte Carlo Simulation</span>
@@ -698,7 +787,7 @@ button, .chip, .nav-btn, .ptab, .m-tab, .wl-btn, .close-x, .vt-btn {
       </div>
     </div>
     <div class="hero-stats">
-      <div class="hst"><div class="v" id="hSim">—</div><div class="l">Simulated</div></div>
+      <div class="hst"><div class="v" id="hSim">—</div><div class="l">Nifty 100</div></div>
       <div class="hst"><div class="v" id="hBull">—</div><div class="l">Bullish</div></div>
       <div class="hst"><div class="v" id="hRet">—</div><div class="l">Avg Return</div></div>
       <div class="hst"><div class="v" id="hScr">500+</div><div class="l">Screener</div></div>
@@ -709,8 +798,10 @@ button, .chip, .nav-btn, .ptab, .m-tab, .wl-btn, .close-x, .vt-btn {
 <!-- MAIN PAGE -->
 <div class="page">
   <div class="page-tabs">
-    <button class="ptab active" id="pt-dashboard" onclick="showSec('dashboard')">Dashboard</button>
-    <button class="ptab" id="pt-screener"  onclick="showSec('screener')">Screener</button>
+    <button class="ptab active" id="pt-dashboard" onclick="showSec('dashboard')">Nifty 100</button>
+    <button class="ptab" id="pt-nifty50" onclick="showSec('nifty50')">Nifty 50</button>
+    <button class="ptab" id="pt-next50"  onclick="showSec('next50')">Next 50</button>
+    <button class="ptab" id="pt-screener" onclick="showSec('screener')">Screener</button>
   </div>
 
   <!-- ══ DASHBOARD ══ -->
@@ -755,7 +846,7 @@ button, .chip, .nav-btn, .ptab, .m-tab, .wl-btn, .close-x, .vt-btn {
     <div class="kpi-row" id="kpiRow"></div>
     <div class="tbl-card">
       <div class="tbl-top">
-        <div style="display:flex;align-items:center"><span class="tbl-title">Monte Carlo Intelligence</span><span class="cnt-badge" id="dCnt">—</span></div>
+        <div style="display:flex;align-items:center"><span class="tbl-title">Nifty 100 — Full Simulation</span><span class="cnt-badge" id="dCnt">—</span></div>
         <div class="tbl-upd" id="dUpd">—</div>
       </div>
       <div id="dLoad" class="state-box"><div class="spinner"></div><div class="state-t">Loading QuantEdge data</div><div class="state-s">Fetching CAPM-GARCH-Monte Carlo results...</div></div>
@@ -786,10 +877,129 @@ button, .chip, .nav-btn, .ptab, .m-tab, .wl-btn, .close-x, .vt-btn {
     </div>
   </div>
 
+  <!-- ══ NIFTY 50 ══ -->
+  <div id="sec-nifty50" style="display:none">
+    <div class="sec-header">
+      <div>
+        <div class="sec-title">Nifty 50 — Index Constituents</div>
+        <div class="sec-sub">Live composition from NSE · Monte Carlo signals for all 50 stocks · Updated daily at 6:30 PM IST</div>
+      </div>
+      <div class="sec-badge-row">
+        <span class="index-badge blue" id="n50-bull-ct">—</span>
+        <span class="index-badge green" id="n50-avg-ret">—</span>
+      </div>
+    </div>
+    <div class="ctrl">
+      <div class="search-box">
+        <svg class="search-ico" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-inp" id="n50Srch" placeholder="Search Nifty 50..." oninput="applyN50()">
+      </div>
+      <div class="chips">
+        <button class="chip active" onclick="setN50Sec(this,'all')">All</button>
+        <button class="chip" onclick="setN50Sec(this,'Financial Services')">Financials</button>
+        <button class="chip" onclick="setN50Sec(this,'Technology')">Technology</button>
+        <button class="chip" onclick="setN50Sec(this,'Consumer Cyclical')">Consumer</button>
+        <button class="chip" onclick="setN50Sec(this,'Healthcare')">Healthcare</button>
+        <button class="chip" onclick="setN50Sec(this,'Energy')">Energy</button>
+        <button class="chip" onclick="setN50Sec(this,'Industrials')">Industrials</button>
+      </div>
+      <select class="sort-sel" onchange="n50Sort=this.value;applyN50()">
+        <option value="score">Signal Score</option>
+        <option value="expected_return_pct">Expected Return</option>
+        <option value="prob_up">Probability Up</option>
+        <option value="sharpe">Sharpe</option>
+      </select>
+    </div>
+    <div class="tbl-card">
+      <div class="tbl-top">
+        <div style="display:flex;align-items:center">
+          <span class="tbl-title">Nifty 50 — Live Composition</span>
+          <span class="cnt-badge" id="n50Cnt">—</span>
+        </div>
+        <div class="index-source-tag">Source: NSE India (live) · Simulation: QuantEdge daily pipeline</div>
+      </div>
+      <div id="n50Load" class="state-box"><div class="spinner"></div><div class="state-t">Loading Nifty 50 data</div><div class="state-s">Fetching live index composition + signals...</div></div>
+      <div id="n50Table" style="display:none">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Stock</th><th>Price</th>
+              <th>E[Return]</th><th>Signal</th><th>P(↑)</th>
+              <th class="hd">RSI</th><th class="hd">Sharpe</th>
+              <th class="hd">Grade</th><th class="hd">Beta</th><th></th>
+            </tr></thead>
+            <tbody id="n50Body"></tbody>
+          </table>
+          <div id="n50NoRes" class="no-res" style="display:none">No stocks match.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ NIFTY NEXT 50 ══ -->
+  <div id="sec-next50" style="display:none">
+    <div class="sec-header">
+      <div>
+        <div class="sec-title">Nifty Next 50 — Index Constituents</div>
+        <div class="sec-sub">Live composition from NSE · Monte Carlo signals for all 50 stocks · Updated daily at 6:30 PM IST</div>
+      </div>
+      <div class="sec-badge-row">
+        <span class="index-badge blue" id="nx50-bull-ct">—</span>
+        <span class="index-badge green" id="nx50-avg-ret">—</span>
+      </div>
+    </div>
+    <div class="ctrl">
+      <div class="search-box">
+        <svg class="search-ico" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-inp" id="nx50Srch" placeholder="Search Nifty Next 50..." oninput="applyNx50()">
+      </div>
+      <div class="chips">
+        <button class="chip active" onclick="setNx50Sec(this,'all')">All</button>
+        <button class="chip" onclick="setNx50Sec(this,'Financial Services')">Financials</button>
+        <button class="chip" onclick="setNx50Sec(this,'Technology')">Technology</button>
+        <button class="chip" onclick="setNx50Sec(this,'Consumer Cyclical')">Consumer</button>
+        <button class="chip" onclick="setNx50Sec(this,'Healthcare')">Healthcare</button>
+        <button class="chip" onclick="setNx50Sec(this,'Energy')">Energy</button>
+        <button class="chip" onclick="setNx50Sec(this,'Industrials')">Industrials</button>
+      </div>
+      <select class="sort-sel" onchange="nx50Sort=this.value;applyNx50()">
+        <option value="score">Signal Score</option>
+        <option value="expected_return_pct">Expected Return</option>
+        <option value="prob_up">Probability Up</option>
+        <option value="sharpe">Sharpe</option>
+      </select>
+    </div>
+    <div class="tbl-card">
+      <div class="tbl-top">
+        <div style="display:flex;align-items:center">
+          <span class="tbl-title">Nifty Next 50 — Live Composition</span>
+          <span class="cnt-badge" id="nx50Cnt">—</span>
+        </div>
+        <div class="index-source-tag">Source: NSE India (live) · Simulation: QuantEdge daily pipeline</div>
+      </div>
+      <div id="nx50Load" class="state-box"><div class="spinner"></div><div class="state-t">Loading Nifty Next 50 data</div><div class="state-s">Fetching live index composition + signals...</div></div>
+      <div id="nx50Table" style="display:none">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Stock</th><th>Price</th>
+              <th>E[Return]</th><th>Signal</th><th>P(↑)</th>
+              <th class="hd">RSI</th><th class="hd">Sharpe</th>
+              <th class="hd">Grade</th><th class="hd">Beta</th><th></th>
+            </tr></thead>
+            <tbody id="nx50Body"></tbody>
+          </table>
+          <div id="nx50NoRes" class="no-res" style="display:none">No stocks match.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
   <!-- ══ SCREENER ══ -->
   <div id="sec-screener" style="display:none">
     <div class="scr-note">
-      <strong>NSE 500 Screener</strong>
+      <strong>NSE 500 Screener</strong> — EOD data (price, fundamentals, 52W) updated daily at 6:30 PM IST via yfinance. Stocks marked <strong>MC</strong> have full Monte Carlo + Technical analysis.
     </div>
     <div class="ctrl">
       <div class="search-box">
@@ -797,16 +1007,14 @@ button, .chip, .nav-btn, .ptab, .m-tab, .wl-btn, .close-x, .vt-btn {
         <input class="search-inp" id="sSrch" placeholder="Search 500+ NSE stocks..." oninput="applyS()">
       </div>
       <div class="chips">
-        <button class="chip active" onclick="setDSec(this,'all')">All</button>
-        <button class="chip" onclick="setSS(this,'Financial Services')">Financials</button>
-        <button class="chip" onclick="setSS(this,'Technology')">Technology</button>
-        <button class="chip" onclick="setSS(this,'Consumer Cyclical')">Consumer Cyclical</button>
-        <button class="chip" onclick="setSS(this,'Consumer Defensive')">Consumer Defensive</button>
-        <button class="chip" onclick="setSS(this,'Healthcare')">Healthcare</button>
+        <button class="chip active" onclick="setSS(this,'all')">All</button>
+        <button class="chip" onclick="setSS(this,'Banking')">Banking</button>
+        <button class="chip" onclick="setSS(this,'IT')">IT</button>
+        <button class="chip" onclick="setSS(this,'Auto')">Auto</button>
+        <button class="chip" onclick="setSS(this,'FMCG')">FMCG</button>
+        <button class="chip" onclick="setSS(this,'Pharma')">Pharma</button>
         <button class="chip" onclick="setSS(this,'Energy')">Energy</button>
-        <button class="chip" onclick="setSS(this,'Industrials')">Industrials</button>
-        <button class="chip" onclick="setSS(this,'Basic Materials')">Materials</button>
-        <button class="chip" onclick="setSS(this,'Utilities')">Utilities</button>
+        <button class="chip" onclick="setSS(this,'Finance')">Finance</button>
       </div>
       <select class="sort-sel" id="sSort" onchange="applyS()">
         <option value="name">Name A–Z</option>
@@ -984,8 +1192,16 @@ button, .chip, .nav-btn, .ptab, .m-tab, .wl-btn, .close-x, .vt-btn {
   </div>
 </div>
 
+
+<!-- Brand identity for search engine indexing -->
+<div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap" aria-hidden="true">
+QuantEdge Analytics is a quantitative stock analysis platform for Indian equity markets. 
+We provide Monte Carlo simulation, GARCH volatility modeling, CAPM-based expected return 
+calculations, and technical analysis for Nifty 50 and Nifty 100 stocks. 
+Visit quantedgeanalytics.co.in for free institutional-grade stock analysis.
+</div>
 <footer>
-  <div class="f-brand">Quant<em>Edge</em> Analytics</div>
+  <div class="f-brand"><strong>QuantEdge Analytics</strong> — quantedgeanalytics.co.in</div>
   <div class="f-txt">CAPM · GARCH · Monte Carlo · RSI · MACD · Bollinger Bands · GBM · Student-t</div>
   <div class="f-txt" id="footUpd">—</div>
 </footer>
@@ -1099,17 +1315,18 @@ const A = {
 // ══════════════════════════════════════════════
 function showSec(s) {
   A.curSec = s;
-  document.getElementById('sec-dashboard').style.display = s==='dashboard'?'block':'none';
-  document.getElementById('sec-screener').style.display  = s==='screener' ?'block':'none';
-  ['dashboard','screener'].forEach(x=>{
-    document.getElementById('nb-'+x)?.classList.toggle('active',x===s);
-    document.getElementById('pt-'+x)?.classList.toggle('active',x===s);
-    // Sync mobile bottom tabs
-    document.getElementById('mobt-'+x)?.classList.toggle('active',x===s);
+  const secs = ['dashboard','nifty50','next50','screener'];
+  secs.forEach(x => {
+    const el = document.getElementById('sec-'+x);
+    if (el) el.style.display = x===s ? 'block' : 'none';
+    ['nb-','pt-','mobt-'].forEach(pfx => {
+      document.getElementById(pfx+x)?.classList.toggle('active', x===s);
+    });
   });
-  // Scroll to top on section change (mobile UX)
   window.scrollTo({top:0,behavior:'smooth'});
   if (s==='screener') initScr();
+  if (s==='nifty50')  initN50();
+  if (s==='next50')   initNx50();
 }
 
 // ══════════════════════════════════════════════
@@ -1159,7 +1376,151 @@ async function fetchLive(symbols){
   const su=document.getElementById('sUpd');if(su)su.textContent='Live: '+new Date().toLocaleTimeString('en-IN');
 }
 
+
+// ══════════════════════════════════════════════
+//  NIFTY 50 + NEXT 50 — LIVE INDEX DATA
+// ══════════════════════════════════════════════
+// Nifty 50 symbols (live from NSE via nifty50_composition.json)
+const NIFTY50_SYMS = new Set([
+  "RELIANCE","TCS","HDFCBANK","BHARTIARTL","ICICIBANK","INFOSYS","SBIN",
+  "HINDUNILVR","ITC","LT","KOTAKBANK","AXISBANK","ASIANPAINT","MARUTI",
+  "SUNPHARMA","TITAN","ULTRACEMCO","BAJFINANCE","WIPRO","ONGC","NTPC",
+  "POWERGRID","HCLTECH","M&M","TATAMOTORS","TATASTEEL","ADANIENT",
+  "ADANIPORTS","COALINDIA","BAJAJFINSV","NESTLEIND","CIPLA","DRREDDY",
+  "HEROMOTOCO","BRITANNIA","TECHM","GRASIM","BPCL","EICHERMOT","DIVISLAB",
+  "APOLLOHOSP","TATACONSUM","BAJAJ-AUTO","HINDALCO","JSWSTEEL","SHRIRAMFIN",
+  "INDUSINDBK","SBILIFE","HDFCLIFE","BEL"
+]);
+
+let n50State  = {sec:'all',sort:'score',inited:false};
+let nx50State = {sec:'all',sort:'score',inited:false};
+let n50Sort   = 'score';
+let nx50Sort  = 'score';
+
+// Load live Nifty 50 composition from pipeline output
+async function loadNiftyComposition() {
+  try {
+    const r = await fetch('nifty50_composition.json?t='+Date.now());
+    if (r.ok) {
+      const d = await r.json();
+      const syms = (d.stocks||[]).map(s=>s.symbol);
+      if (syms.length >= 40) {
+        NIFTY50_SYMS.clear();
+        syms.forEach(s=>NIFTY50_SYMS.add(s));
+        console.log('Nifty 50 updated from pipeline:', syms.length, 'stocks');
+      }
+    }
+  } catch(e) {
+    console.log('Using hardcoded Nifty 50 list');
+  }
+}
+
+function initN50() {
+  if (!A.all.length) { return; }
+  document.getElementById('n50Load').style.display = 'none';
+  document.getElementById('n50Table').style.display = 'block';
+  applyN50();
+}
+
+function initNx50() {
+  if (!A.all.length) { return; }
+  document.getElementById('nx50Load').style.display = 'none';
+  document.getElementById('nx50Table').style.display = 'block';
+  applyNx50();
+}
+
+function setN50Sec(btn, sec) {
+  document.querySelectorAll('#sec-nifty50 .chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active'); n50State.sec=sec; applyN50();
+}
+function setNx50Sec(btn, sec) {
+  document.querySelectorAll('#sec-next50 .chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active'); nx50State.sec=sec; applyNx50();
+}
+
+function applyN50() {
+  const q   = (document.getElementById('n50Srch')?.value||'').toLowerCase();
+  const sec = n50State.sec;
+  const sk  = n50Sort;
+  const arr = A.all.filter(s => {
+    const inN50 = NIFTY50_SYMS.has(s.symbol);
+    const mq = !q||(s.symbol||'').toLowerCase().includes(q)||(s.name||'').toLowerCase().includes(q);
+    const ms = sec==='all'||(s.sector||'')=== sec;
+    return inN50 && mq && ms;
+  });
+  arr.sort((a,b)=>(b[sk]||0)-(a[sk]||0));
+  renderIndexTable(arr, 'n50Body', 'n50NoRes', 'n50Cnt', 'n50-bull-ct', 'n50-avg-ret');
+}
+
+function applyNx50() {
+  const q   = (document.getElementById('nx50Srch')?.value||'').toLowerCase();
+  const sec = nx50State.sec;
+  const sk  = nx50Sort;
+  const arr = A.all.filter(s => {
+    const inN50 = NIFTY50_SYMS.has(s.symbol);
+    const mq = !q||(s.symbol||'').toLowerCase().includes(q)||(s.name||'').toLowerCase().includes(q);
+    const ms = sec==='all'||(s.sector||'')=== sec;
+    return !inN50 && mq && ms;
+  });
+  arr.sort((a,b)=>(b[sk]||0)-(a[sk]||0));
+  renderIndexTable(arr, 'nx50Body', 'nx50NoRes', 'nx50Cnt', 'nx50-bull-ct', 'nx50-avg-ret');
+}
+
+function renderIndexTable(stocks, bodyId, noResId, cntId, bullId, retId) {
+  const tb = document.getElementById(bodyId);
+  const nr = document.getElementById(noResId);
+  const ct = document.getElementById(cntId);
+  const bi = document.getElementById(bullId);
+  const ri = document.getElementById(retId);
+
+  if (!stocks.length) {
+    if(tb) tb.innerHTML='';
+    if(nr) nr.style.display='block';
+    if(ct) ct.textContent='0 stocks';
+    return;
+  }
+  if(nr) nr.style.display='none';
+  if(ct) ct.textContent = stocks.length + ' stocks';
+
+  // Stats badges
+  const bulls = stocks.filter(s=>s.prob_up>0.55).length;
+  const avgR  = stocks.reduce((a,s)=>a+(s.expected_return_pct||0),0)/stocks.length;
+  if(bi) bi.textContent = bulls+' Bullish';
+  if(ri) ri.textContent = (avgR>=0?'+':'')+avgR.toFixed(1)+'% avg E[Return]';
+
+  if(tb) tb.innerHTML = stocks.map((s,i) => {
+    const live = A.lp[s.symbol]||{};
+    const px   = live.price ? live.price.toFixed(2) : (s.price||0).toFixed(2);
+    const r    = s.expected_return_pct||0;
+    const pp   = ((s.prob_up||0)*100).toFixed(0);
+    const pc   = (s.prob_up||0)>0.55?'var(--green)':(s.prob_up||0)<0.45?'var(--red)':'var(--amber)';
+    const rsi  = s.rsi_14;
+    const rsiC = rsi<35?'var(--green)':rsi>65?'var(--red)':'var(--amber)';
+    const grd  = s.fundamental_grade||'—';
+    const gc   = grd.startsWith('A')?'grade-A':grd.startsWith('B')?'grade-B':grd.startsWith('C')?'grade-C':'grade-D';
+    const sc   = sigClass(s.signal||'HOLD');
+    const wlS  = A.watchlist.includes(s.symbol);
+    const livePx = live.price ? '<span class="live-tag">EOD</span>' : '';
+    const sct  = 'st-'+(s.sector||'').replace(/\s+/g,'');
+    return \`<tr onclick="openM('\${s.symbol}')" style="cursor:pointer">
+      <td style="color:var(--muted);font-size:10px;font-family:'JetBrains Mono',monospace">\${i+1}</td>
+      <td><div class="sym-c">\${s.symbol}\${livePx}</div><div class="name-c">\${s.name||''}</div><span class="sec-tag \${sct}">\${s.sector||''}</span></td>
+      <td class="price-c">₹\${px}</td>
+      <td><span class="ret-badge \${r>=0?'ret-up':'ret-dn'}">\${r>=0?'▲':'▼'}\${(r>=0?'+':'')+r.toFixed(1)+'%'}</span></td>
+      <td><span class="\${sc}">\${s.signal||'—'}</span></td>
+      <td><div class="prob-wrap"><div class="prob-trk"><div class="prob-fil" style="width:\${pp}%;background:\${pc}"></div></div><span class="prob-num" style="color:\${pc}">\${pp}%</span></div></td>
+      <td class="rsi-cell hd" style="color:\${rsiC}">\${rsi?.toFixed(1)||'—'}</td>
+      <td class="hd" style="font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;color:\${(s.sharpe||0)>0.4?'var(--green)':(s.sharpe||0)<0?'var(--red)':'var(--text2)'}">\${s.sharpe?.toFixed(2)||'—'}</td>
+      <td class="hd"><span class="grade-badge \${gc}">\${grd}</span></td>
+      <td class="hd" style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--amber)">\${s.beta_nifty?.toFixed(2)||'—'}</td>
+      <td><button class="wl-btn \${wlS?'saved':''}" onclick="event.stopPropagation();toggleWl('\${s.symbol}')">\${wlS?'★':'☆'}</button></td>
+    </tr>\`;
+  }).join('');
+}
+
 async function loadAll() {
+  // Load live Nifty 50 composition (updates NIFTY50_SYMS set)
+  loadNiftyComposition();
   // Step 1: load simulation data + cached prices simultaneously
   const [sumRes, lpRes] = await Promise.allSettled([
     fetch('summary.json?t='+Date.now()),
@@ -1187,6 +1548,8 @@ async function loadAll() {
       ['navUpd','dUpd','footUpd'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='Sim: '+ts;});
       if(!A.all.length){showDErr('No stocks processed','Run the GitHub Actions pipeline');return;}
       buildHero(A.all);buildKpi(A.all);applyD();
+      if(A.curSec==='nifty50')applyN50();
+      if(A.curSec==='next50')applyNx50();
       document.getElementById('dLoad').style.display='none';
       document.getElementById('dTable').style.display='block';
       fetch('charts.json?t='+Date.now()).then(r=>r.json()).then(d=>{A.chartsData=d;}).catch(()=>{});
@@ -1770,7 +2133,7 @@ const TV_MAP = {
 
 function getTVSym(sym) {
   const mapped = TV_MAP[sym] || sym.replace(/[^A-Z0-9]/g,'');
-  return 'BSE:' + mapped;
+  return 'NSE:' + mapped;
 }
 
 // Fallback: use TradingView iframe embed (works without tv.js restrictions)
@@ -2158,6 +2521,14 @@ document.querySelectorAll('thead th[data-k]').forEach(th=>th.addEventListener('c
 }));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeM();if(A.profileOpen)toggleProfile();}});
 
+function sigClass(sig){
+  if(!sig)return'sig-hold';
+  if(sig.includes('STRONG BUY'))return'sig-sbuy';
+  if(sig.includes('BUY'))return'sig-buy';
+  if(sig==='HOLD')return'sig-hold';
+  if(sig==='RISKY')return'sig-risky';
+  return'sig-avoid';
+}
 // Boot — ensure A state is clean
 A.dSec = 'all';
 A.scrSec = 'all';
@@ -2167,12 +2538,12 @@ loadAll();
 <!-- FIREBASE CONFIG -->
 <script>
 window.FIREBASE_CONFIG = {
-        apiKey: 'AIzaSyCc5BTXmgK6zNg2dAWKNbk95swmJ6TXQG8',
-        authDomain: 'quantedge-c5855.firebaseapp.com',
-        projectId: 'quantedge-c5855',
-        storageBucket: 'quantedge-c5855.firebasestorage.app',
-        messagingSenderId: '141320543192',
-        appId: '1:141320543192:web:b59e4d74d2d52478eaf0ad',
+  apiKey           : "YOUR_API_KEY_HERE",
+  authDomain       : "YOUR_PROJECT.firebaseapp.com",
+  projectId        : "YOUR_PROJECT_ID",
+  storageBucket    : "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId            : "YOUR_APP_ID"
 };
 
 async function initFirebase() {
