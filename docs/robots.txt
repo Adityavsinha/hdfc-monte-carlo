@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Sitemap: https://quantedgeanalytics.co.in/sitemap.xml
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
