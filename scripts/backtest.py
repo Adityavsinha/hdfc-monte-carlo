@@ -151,7 +151,7 @@ def evaluate_signals():
     today_str  = datetime.now().strftime("%Y-%m-%d")
     to_eval    = [
         e for e in history
-        if not e["evaluated"] and e.get("eval_date", "9999-99-99") <= today_str
+        if not e.get("evaluated", False) and e.get("eval_date", "9999-99-99") <= today_str
     ]
 
     if not to_eval:
