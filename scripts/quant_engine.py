@@ -724,9 +724,15 @@ def run_full_pipeline(
         regime_adj = float(regime_info.get("drift_adjustment", 0.0))
 
         # ── 1. Drift: Fama-French 3-Factor ────────────────
+        # NOTE: cannot use `or` with pandas Series — use explicit None check
+        _mkt = (market_excess
+                if (market_excess is not None and
+                    not getattr(market_excess, 'empty', True) and
+                    len(market_excess) > 10)
+                else nifty_returns)
         mu, beta, method, ff3 = estimate_drift_ff3(
             log_returns   = log_ret,
-            market_excess = market_excess or nifty_returns,
+            market_excess = _mkt,
             smb_returns   = smb_returns,
             hml_returns   = hml_returns,
             regime_adj    = regime_adj,
