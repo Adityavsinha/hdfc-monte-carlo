@@ -2,46 +2,75 @@
 scripts/data_ingestion.py
 -------------------------
 Fetches live Nifty 50 composition from NSE + historical OHLCV data.
-Auto-updates whenever Nifty 50 composition changes.
+Phase 1 fix: Yahoo Finance ticker alias map for symbols that differ from NSE codes.
 """
 
 import requests
 import yfinance as yf
 import pandas as pd
 import numpy as np
-import json
 import logging
 from datetime import datetime, timedelta
-from pathlib import Path
 from config import NIFTY50_SYMBOLS, SECTOR_MAP
 
 logger = logging.getLogger(__name__)
 
+# ══════════════════════════════════════════════════════════════
+#  YAHOO FINANCE TICKER ALIAS MAP
+#  Some NSE symbols differ from Yahoo Finance tickers.
+#  Add any symbol that fails with 404 here.
+# ══════════════════════════════════════════════════════════════
+YF_ALIAS = {
+    # NSE symbol  → Yahoo Finance .NS ticker
+    "INFOSYS"     : "INFY",
+    "TATAMOTORS"  : "TATAMTRDVR",   # fallback; primary tried first
+    "M&M"         : "M%26M",
+    "BAJAJ-AUTO"  : "BAJAJ-AUTO",
+    "BRITANNIA"   : "BRITANNIA",
+    "HINDUNILVR"  : "HINDUNILVR",
+    "ASIANPAINT"  : "ASIANPAINT",
+    "NESTLEIND"   : "NESTLEIND",
+    "ULTRACEMCO"  : "ULTRACEMCO",
+    "APOLLOHOSP"  : "APOLLOHOSP",
+    "TATACONSUM"  : "TATACONSUM",
+    "EICHERMOT"   : "EICHERMOT",
+    "HEROMOTOCO"  : "HEROMOTOCO",
+    "DIVISLAB"    : "DIVISLAB",
+    "SHRIRAMFIN"  : "SHRIRAMFIN",
+    "INDUSINDBK"  : "INDUSINDBK",
+    "ADANIPORTS"  : "ADANIPORTS",
+    "ADANIENT"    : "ADANIENT",
+}
 
-# ── Live Nifty 50 Composition ──────────────────
+# Stocks that ONLY work with a specific ticker (skip .NS attempt)
+YF_DIRECT = {
+    "INFOSYS": "INFY.NS",
+}
+
+# ══════════════════════════════════════════════════════════════
+#  LIVE NIFTY 50 COMPOSITION
+# ══════════════════════════════════════════════════════════════
 def fetch_live_nifty50() -> list[dict]:
     """
     Fetches current Nifty 50 stocks from NSE India API.
     Falls back to hardcoded list if API fails.
-    Returns list of {symbol, name, sector, isin}.
     """
     headers = {
-        "User-Agent": "Mozilla/5.0",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Accept": "application/json",
-        "Referer": "https://www.nseindia.com"
+        "Referer": "https://www.nseindia.com",
+        "Accept-Language": "en-US,en;q=0.9",
     }
 
     try:
         session = requests.Session()
-        # First hit the main page to get cookies
         session.get("https://www.nseindia.com", headers=headers, timeout=10)
-
-        url = "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%2050"
-        r   = session.get(url, headers=headers, timeout=15)
+        url  = "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%2050"
+        r    = session.get(url, headers=headers, timeout=15)
         data = r.json()
 
         stocks = []
-        for item in data.get("data", [])[1:]:  # skip index row
+        for item in data.get("data", [])[1:]:
             sym = item.get("symbol", "").strip()
             if sym:
                 stocks.append({
@@ -49,7 +78,7 @@ def fetch_live_nifty50() -> list[dict]:
                     "name"  : item.get("meta", {}).get("companyName", sym),
                     "sector": item.get("meta", {}).get("industry", SECTOR_MAP.get(sym, "Other")),
                     "isin"  : item.get("meta", {}).get("isin", ""),
-                    "source": "live_nse"
+                    "source": "live_nse",
                 })
 
         if len(stocks) >= 45:
@@ -59,159 +88,175 @@ def fetch_live_nifty50() -> list[dict]:
     except Exception as e:
         logger.warning(f"NSE API failed: {e} — using fallback list")
 
-    # Fallback to hardcoded list
     return [{
-        "symbol": s,
-        "name"  : s,
+        "symbol": s, "name": s,
         "sector": SECTOR_MAP.get(s, "Other"),
-        "isin"  : "",
-        "source": "fallback"
+        "isin": "", "source": "fallback",
     } for s in NIFTY50_SYMBOLS]
 
 
-# ── Historical Data Fetch ──────────────────────
+# ══════════════════════════════════════════════════════════════
+#  HISTORICAL DATA FETCH — with alias + fallback chain
+# ══════════════════════════════════════════════════════════════
+def _download(ticker: str, start, end) -> pd.DataFrame:
+    """Single yfinance download attempt, returns empty DF on failure."""
+    try:
+        df = yf.download(ticker, start=start, end=end,
+                         auto_adjust=True, progress=False, timeout=15)
+        return df if df is not None else pd.DataFrame()
+    except Exception:
+        return pd.DataFrame()
+
+
 def fetch_stock_data(symbol: str, years: int = 10) -> pd.DataFrame | None:
     """
-    Fetches 10 years of daily OHLCV + Adj Close from yfinance.
-    Handles NSE symbols (adds .NS suffix).
-    Returns cleaned DataFrame or None on failure.
+    Fetches historical OHLCV from yfinance with a 4-step fallback chain:
+      1. Direct alias if defined (e.g. INFY.NS for INFOSYS)
+      2. symbol.NS  (standard NSE)
+      3. Alias.NS   (from YF_ALIAS map)
+      4. symbol.BO  (BSE fallback)
     """
-    ticker = symbol if "." in symbol else f"{symbol}.NS"
+    end   = datetime.today()
+    start = end - timedelta(days=years * 365 + 90)
 
-    try:
-        end   = datetime.today()
-        start = end - timedelta(days=years * 365 + 90)
+    # Build candidate ticker list
+    candidates = []
+    if symbol in YF_DIRECT:
+        candidates.append(YF_DIRECT[symbol])          # e.g. INFY.NS
 
-        df = yf.download(ticker, start=start, end=end,
-                         auto_adjust=True, progress=False)
+    candidates.append(f"{symbol}.NS")                 # standard NSE
 
-        if df.empty or len(df) < 200:
-            # Try BSE suffix as fallback
-            ticker_bse = f"{symbol}.BO"
-            df = yf.download(ticker_bse, start=start, end=end,
-                             auto_adjust=True, progress=False)
+    alias = YF_ALIAS.get(symbol)
+    if alias and f"{alias}.NS" not in candidates:
+        candidates.append(f"{alias}.NS")
 
-        if df.empty or len(df) < 200:
-            logger.warning(f"  {symbol}: insufficient data ({len(df)} rows)")
-            return None
+    candidates.append(f"{symbol}.BO")                 # BSE fallback
 
-        # Flatten multi-level columns (new yfinance versions)
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.get_level_values(0)
+    df = pd.DataFrame()
+    used_ticker = None
 
-        # Ensure numeric
-        for col in ["Open","High","Low","Close","Volume"]:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col].squeeze(), errors="coerce")
+    for ticker in candidates:
+        df = _download(ticker, start, end)
+        if not df.empty and len(df) >= 100:
+            used_ticker = ticker
+            break
 
-        df.ffill(inplace=True)
-        df.dropna(subset=["Close"], inplace=True)
-        df.index = pd.to_datetime(df.index)
-        df.sort_index(inplace=True)
-
-        logger.info(f"  {symbol}: {len(df)} rows | "
-                    f"{df.index[0].date()} → {df.index[-1].date()} | "
-                    f"₹{float(df['Close'].iloc[-1]):,.2f}")
-        return df
-
-    except Exception as e:
-        logger.error(f"  {symbol}: fetch failed — {e}")
+    if df.empty or len(df) < 100:
+        logger.warning(f"  {symbol}: insufficient data ({len(df)} rows) — tried {candidates}")
         return None
 
+    # Flatten multi-level columns
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
 
-# ── Financial Info ─────────────────────────────
+    for col in ["Open", "High", "Low", "Close", "Volume"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col].squeeze(), errors="coerce")
+
+    df.ffill(inplace=True)
+    df.dropna(subset=["Close"], inplace=True)
+    df.index = pd.to_datetime(df.index)
+    df.sort_index(inplace=True)
+
+    logger.info(
+        f"  {symbol}: {len(df)} rows | "
+        f"{df.index[0].date()} → {df.index[-1].date()} | "
+        f"₹{float(df['Close'].iloc[-1]):,.2f}"
+        + (f" [{used_ticker}]" if used_ticker != f"{symbol}.NS" else "")
+    )
+    return df
+
+
+# ══════════════════════════════════════════════════════════════
+#  FINANCIAL INFO
+# ══════════════════════════════════════════════════════════════
 def fetch_financial_info(symbol: str) -> dict:
-    """
-    Fetches key financial metrics from yfinance.
-    P/E, Market Cap, EPS, Revenue, Dividend Yield, ROE, etc.
-    """
-    ticker = symbol if "." in symbol else f"{symbol}.NS"
+    """Fetches key financial metrics. Uses alias if needed."""
+    # Use the direct alias if available, else standard .NS
+    ticker_str = YF_DIRECT.get(symbol, f"{YF_ALIAS.get(symbol, symbol)}.NS")
     result = {}
 
     try:
-        info = yf.Ticker(ticker).info
+        info = yf.Ticker(ticker_str).info
+        if not info or info.get("quoteType") == "NONE":
+            # Try standard .NS as fallback
+            info = yf.Ticker(f"{symbol}.NS").info
+
+        def g(k):
+            v = info.get(k)
+            if v is None or (isinstance(v, float) and (v != v)):  # NaN check
+                return None
+            return v
+
         result = {
-            "market_cap"    : info.get("marketCap"),
-            "pe_ratio"      : info.get("trailingPE"),
-            "pb_ratio"      : info.get("priceToBook"),
-            "eps"           : info.get("trailingEps"),
-            "revenue"       : info.get("totalRevenue"),
-            "net_income"    : info.get("netIncomeToCommon"),
-            "roe"           : info.get("returnOnEquity"),
-            "roa"           : info.get("returnOnAssets"),
-            "debt_equity"   : info.get("debtToEquity"),
-            "current_ratio" : info.get("currentRatio"),
-            "dividend_yield": info.get("dividendYield"),
-            "beta"          : info.get("beta"),
-            "book_value"    : info.get("bookValue"),
-            "52w_high"      : info.get("fiftyTwoWeekHigh"),
-            "52w_low"       : info.get("fiftyTwoWeekLow"),
-            "avg_volume"    : info.get("averageVolume"),
-            "shares_out"    : info.get("sharesOutstanding"),
+            "name"          : info.get("longName") or info.get("shortName") or symbol,
+            "market_cap"    : g("marketCap"),
+            "pe_ratio"      : g("trailingPE"),
+            "pb_ratio"      : g("priceToBook"),
+            "eps"           : g("trailingEps"),
+            "revenue"       : g("totalRevenue"),
+            "net_income"    : g("netIncomeToCommon"),
+            "roe"           : g("returnOnEquity"),
+            "roa"           : g("returnOnAssets"),
+            "debt_equity"   : g("debtToEquity"),
+            "current_ratio" : g("currentRatio"),
+            "dividend_yield": g("dividendYield"),
+            "beta"          : g("beta"),
+            "book_value"    : g("bookValue"),
             "sector"        : info.get("sector", SECTOR_MAP.get(symbol, "Other")),
             "industry"      : info.get("industry", ""),
-            "description"   : info.get("longBusinessSummary", "")[:300] if info.get("longBusinessSummary") else "",
+            "description"   : (info.get("longBusinessSummary") or "")[:300],
             "employees"     : info.get("fullTimeEmployees"),
-            "founded"       : info.get("founded"),
             "website"       : info.get("website", ""),
         }
     except Exception as e:
-        logger.warning(f"  {symbol}: financial info failed — {e}")
+        logger.debug(f"  {symbol}: financial info failed — {e}")
 
     return result
 
 
-# ── Feature Engineering ────────────────────────
+# ══════════════════════════════════════════════════════════════
+#  FEATURE ENGINEERING
+# ══════════════════════════════════════════════════════════════
 def compute_features(df: pd.DataFrame) -> dict:
-    """
-    Computes all derived features from OHLCV data.
-    Returns dict of Series/values.
-    """
-    close = df["Close"].squeeze()
-
+    """Computes all derived features from OHLCV data."""
+    close   = df["Close"].squeeze()
     log_ret = np.log(close / close.shift(1)).dropna()
 
-    # Rolling statistics
     roll21  = log_ret.rolling(21)
     roll63  = log_ret.rolling(63)
     roll252 = log_ret.rolling(252)
 
-    # Momentum indicators
-    mom_1m  = (close.iloc[-1] / close.iloc[-21]  - 1) if len(close) > 21  else 0
-    mom_3m  = (close.iloc[-1] / close.iloc[-63]  - 1) if len(close) > 63  else 0
-    mom_6m  = (close.iloc[-1] / close.iloc[-126] - 1) if len(close) > 126 else 0
-    mom_1y  = (close.iloc[-1] / close.iloc[-252] - 1) if len(close) > 252 else 0
+    mom_1m = float(close.iloc[-1] / close.iloc[-21]  - 1) if len(close) > 21  else 0.0
+    mom_3m = float(close.iloc[-1] / close.iloc[-63]  - 1) if len(close) > 63  else 0.0
+    mom_6m = float(close.iloc[-1] / close.iloc[-126] - 1) if len(close) > 126 else 0.0
+    mom_1y = float(close.iloc[-1] / close.iloc[-252] - 1) if len(close) > 252 else 0.0
 
-    # EWMA volatility (more responsive)
-    ewma_vol = log_ret.ewm(span=63).std().iloc[-1]
+    ewma_vol     = float(log_ret.ewm(span=63).std().iloc[-1])
+    rolling_max  = close.cummax()
+    drawdown     = (close - rolling_max) / rolling_max
+    max_drawdown = float(drawdown.min())
 
-    # Rolling max drawdown
-    rolling_max   = close.cummax()
-    drawdown      = (close - rolling_max) / rolling_max
-    max_drawdown  = float(drawdown.min())
-
-    # Average True Range (ATR proxy)
+    atr = None
     if "High" in df.columns and "Low" in df.columns:
-        atr = (df["High"].squeeze() - df["Low"].squeeze()).rolling(14).mean().iloc[-1]
-    else:
-        atr = None
+        atr = float((df["High"].squeeze() - df["Low"].squeeze()).rolling(14).mean().iloc[-1])
 
     return {
         "log_returns"   : log_ret,
         "close"         : close,
         "current_price" : float(close.iloc[-1]),
         "mu_daily"      : float(log_ret.mean()),
-        "sigma_daily"   : float(ewma_vol),
-        "sigma_annual"  : float(ewma_vol * np.sqrt(252)),
-        "vol_21"        : float(roll21.std().iloc[-1]) if len(log_ret) > 21  else float(ewma_vol),
-        "vol_63"        : float(roll63.std().iloc[-1]) if len(log_ret) > 63  else float(ewma_vol),
-        "vol_252"       : float(roll252.std().iloc[-1]) if len(log_ret) > 252 else float(ewma_vol),
-        "mom_1m"        : float(mom_1m),
-        "mom_3m"        : float(mom_3m),
-        "mom_6m"        : float(mom_6m),
-        "mom_1y"        : float(mom_1y),
+        "sigma_daily"   : ewma_vol,
+        "sigma_annual"  : ewma_vol * (252 ** 0.5),
+        "vol_21"        : float(roll21.std().iloc[-1]) if len(log_ret) > 21  else ewma_vol,
+        "vol_63"        : float(roll63.std().iloc[-1]) if len(log_ret) > 63  else ewma_vol,
+        "vol_252"       : float(roll252.std().iloc[-1]) if len(log_ret) > 252 else ewma_vol,
+        "mom_1m"        : mom_1m,
+        "mom_3m"        : mom_3m,
+        "mom_6m"        : mom_6m,
+        "mom_1y"        : mom_1y,
         "max_drawdown"  : max_drawdown,
-        "atr"           : float(atr) if atr is not None else None,
+        "atr"           : atr,
         "week52_high"   : float(close.iloc[-252:].max()) if len(close) >= 252 else float(close.max()),
         "week52_low"    : float(close.iloc[-252:].min()) if len(close) >= 252 else float(close.min()),
         "avg_volume_30" : float(df["Volume"].squeeze().iloc[-30:].mean()) if "Volume" in df.columns else None,
