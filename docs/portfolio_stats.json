@@ -1,8 +1,8 @@
 {
-  "portfolio_var_95": -0.0557,
-  "portfolio_var_99": -0.0535,
-  "portfolio_cvar_95": -0.0542,
-  "portfolio_expected_ret": 0.0615,
+  "portfolio_var_95": -0.0552,
+  "portfolio_var_99": -0.053,
+  "portfolio_cvar_95": -0.0539,
+  "portfolio_expected_ret": 0.061,
   "corr_symbols": [
     "NATIONALUM",
     "ABB",
@@ -100,8 +100,9 @@
     "HDFCLIFE",
     "TCS",
     "HCLTECH",
-    "SYNGENE"
+    "SYNGENE",
+    "INFOSYS"
   ],
   "n_simulations": 2000,
-  "last_updated": "25 Apr 2026 08:42 IST"
+  "last_updated": "25 Apr 2026 09:04 IST"
 }
