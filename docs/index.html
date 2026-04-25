@@ -849,7 +849,16 @@ thead th{padding:10px 14px;font-size:10px;font-weight:600;color:var(--text2);tex
         <div style="display:flex;align-items:center"><span class="tbl-title">Nifty 100 — Full Simulation</span><span class="cnt-badge" id="dCnt">—</span></div>
         <div class="tbl-upd" id="dUpd">—</div>
       </div>
-      <div id="dLoad" class="state-box"><div class="spinner"></div><div class="state-t">Loading QuantEdge data</div><div class="state-s">Fetching CAPM-GARCH-Monte Carlo results...</div></div>
+      <div id="dLoad" class="state-box">
+  <div class="spinner"></div>
+  <div class="state-t">Loading QuantEdge data</div>
+  <div class="state-s" id="dLoadMsg">Fetching simulation results from GitHub Pages...</div>
+  <div id="dLoadWait" style="display:none;margin-top:12px;font-size:11px;color:var(--muted)">
+    Taking longer than expected. 
+    <a href="javascript:location.reload()" style="color:var(--blue)">Refresh page</a> or 
+    <a href="https://github.com/Adityavsinha/hdfc-monte-carlo/actions" target="_blank" style="color:var(--blue)">check pipeline status</a>
+  </div>
+</div>
       <div id="dErr" class="state-box" style="display:none"><div style="width:40px;height:40px;border-radius:50%;background:var(--amber-lt);border:2px solid var(--amber-bd);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;color:var(--amber);font-size:18px;font-weight:800">!</div><div class="state-t" id="dErrT">Error</div><div class="state-s" id="dErrM">—</div></div>
       <div id="dTable" style="display:none">
         <div id="tableView">
@@ -999,7 +1008,7 @@ thead th{padding:10px 14px;font-size:10px;font-weight:600;color:var(--text2);tex
   <!-- ══ SCREENER ══ -->
   <div id="sec-screener" style="display:none">
     <div class="scr-note">
-      <strong>NSE 500 Screener</strong> — EOD data (price, fundamentals, 52W) updated daily at 6:30 PM IST via yfinance. Stocks marked <strong>MC</strong> have full Monte Carlo + Technical analysis.
+      <strong>NSE 500 Screener</strong> 
     </div>
     <div class="ctrl">
       <div class="search-box">
@@ -1008,13 +1017,12 @@ thead th{padding:10px 14px;font-size:10px;font-weight:600;color:var(--text2);tex
       </div>
       <div class="chips">
         <button class="chip active" onclick="setSS(this,'all')">All</button>
-        <button class="chip" onclick="setSS(this,'Banking')">Banking</button>
-        <button class="chip" onclick="setSS(this,'IT')">IT</button>
-        <button class="chip" onclick="setSS(this,'Auto')">Auto</button>
-        <button class="chip" onclick="setSS(this,'FMCG')">FMCG</button>
-        <button class="chip" onclick="setSS(this,'Pharma')">Pharma</button>
+        <button class="chip" onclick="setSS(this,'Financial Services')">Financials</button>
+        <button class="chip" onclick="setSS(this,'Technology')">Technology</button>
+        <button class="chip" onclick="setSS(this,'Consumer Cyclical')">Consumer</button>
+        <button class="chip" onclick="setSS(this,'Healthcare')">Healthcare</button>
         <button class="chip" onclick="setSS(this,'Energy')">Energy</button>
-        <button class="chip" onclick="setSS(this,'Finance')">Finance</button>
+        <button class="chip" onclick="setSS(this,'Industrials')">Industrials</button>
       </div>
       <select class="sort-sel" id="sSort" onchange="applyS()">
         <option value="name">Name A–Z</option>
@@ -1519,6 +1527,12 @@ function renderIndexTable(stocks, bodyId, noResId, cntId, bullId, retId) {
 }
 
 async function loadAll() {
+  // Show "taking longer" hint after 8 seconds
+  setTimeout(()=>{
+    const w=document.getElementById('dLoadWait');
+    const l=document.getElementById('dLoad');
+    if(w&&l&&l.style.display!=='none') w.style.display='block';
+  }, 8000);
   // Load live Nifty 50 composition (updates NIFTY50_SYMS set)
   loadNiftyComposition();
   // Step 1: load simulation data + cached prices simultaneously
@@ -1539,6 +1553,10 @@ async function loadAll() {
   }
 
   // Process simulation summary
+  // Update loading message
+  const lm = document.getElementById('dLoadMsg');
+  if(lm) lm.textContent = 'Parsing simulation results...';
+
   if (sumRes.status==='fulfilled' && sumRes.value.ok) {
     try {
       const data=await sumRes.value.json();
@@ -1546,7 +1564,13 @@ async function loadAll() {
       A.scrSimSet=new Set(A.all.map(x=>x.symbol));
       const ts=data.last_updated||'—';
       ['navUpd','dUpd','footUpd'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='Sim: '+ts;});
-      if(!A.all.length){showDErr('No stocks processed','Run the GitHub Actions pipeline');return;}
+      if(!A.all.length){
+        showDErr(
+          'Pipeline ran but produced 0 stocks',
+          'This usually means the pipeline failed silently. Check Actions tab → latest run → Step 6 logs. Common fix: trigger a new run manually via Actions → Run workflow.'
+        );
+        return;
+      }
       buildHero(A.all);buildKpi(A.all);applyD();
       if(A.curSec==='nifty50')applyN50();
       if(A.curSec==='next50')applyNx50();
@@ -1564,10 +1588,15 @@ async function loadAll() {
         const su=document.getElementById('sUpd');if(su){su.textContent='Updated: '+d.last_updated;su.style.display='block';}
         const si=document.getElementById('sLoadInd');if(si)si.style.display='none';
       }).catch(()=>{});
-    } catch(e){showDErr('JSON parse error',e.message);}
+    } catch(e){
+      showDErr('JSON parse error', e.message + ' — Try refreshing the page or re-running the pipeline.');
+    }
   } else {
     document.getElementById('dLoad').style.display='none';
-    showDErr('summary.json not found','Run the GitHub Actions daily pipeline — Actions tab → Run workflow');
+    showDErr(
+      'Data not yet available',
+      'summary.json not found. Steps: 1) Go to your GitHub repo → Actions tab → "QuantEdge Analytics — Daily Pipeline" → Run workflow manually. 2) Wait ~5 minutes for pipeline to complete. 3) Refresh this page.'
+    );
   }
 
   // Dashboard live prices: use screener_data.json prices for simulated stocks
@@ -2538,12 +2567,12 @@ loadAll();
 <!-- FIREBASE CONFIG -->
 <script>
 window.FIREBASE_CONFIG = {
-  apiKey           : "YOUR_API_KEY_HERE",
-  authDomain       : "YOUR_PROJECT.firebaseapp.com",
-  projectId        : "YOUR_PROJECT_ID",
-  storageBucket    : "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId            : "YOUR_APP_ID"
+  apiKey: "AIzaSyCc5BTXmgK6zNg2dAWKNbk95swmJ6TXQG8",
+  authDomain: "quantedge-c5855.firebaseapp.com",
+  projectId: "quantedge-c5855",
+  storageBucket: "quantedge-c5855.firebasestorage.app",
+  messagingSenderId: "141320543192",
+  appId: "1:141320543192:web:b59e4d74d2d52478eaf0ad",
 };
 
 async function initFirebase() {
