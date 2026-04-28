@@ -1008,7 +1008,7 @@ thead th{padding:10px 14px;font-size:10px;font-weight:600;color:var(--text2);tex
   <!-- ══ SCREENER ══ -->
   <div id="sec-screener" style="display:none">
     <div class="scr-note">
-      <strong>NSE 500 Screener</strong> 
+      <strong>NSE 500 Screener</strong>
     </div>
     <div class="ctrl">
       <div class="search-box">
@@ -1510,19 +1510,19 @@ function renderIndexTable(stocks, bodyId, noResId, cntId, bullId, retId) {
     const wlS  = A.watchlist.includes(s.symbol);
     const livePx = live.price ? '<span class="live-tag">EOD</span>' : '';
     const sct  = 'st-'+(s.sector||'').replace(/\s+/g,'');
-    return \`<tr onclick="openM('\${s.symbol}')" style="cursor:pointer">
-      <td style="color:var(--muted);font-size:10px;font-family:'JetBrains Mono',monospace">\${i+1}</td>
-      <td><div class="sym-c">\${s.symbol}\${livePx}</div><div class="name-c">\${s.name||''}</div><span class="sec-tag \${sct}">\${s.sector||''}</span></td>
-      <td class="price-c">₹\${px}</td>
-      <td><span class="ret-badge \${r>=0?'ret-up':'ret-dn'}">\${r>=0?'▲':'▼'}\${(r>=0?'+':'')+r.toFixed(1)+'%'}</span></td>
-      <td><span class="\${sc}">\${s.signal||'—'}</span></td>
-      <td><div class="prob-wrap"><div class="prob-trk"><div class="prob-fil" style="width:\${pp}%;background:\${pc}"></div></div><span class="prob-num" style="color:\${pc}">\${pp}%</span></div></td>
-      <td class="rsi-cell hd" style="color:\${rsiC}">\${rsi?.toFixed(1)||'—'}</td>
-      <td class="hd" style="font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;color:\${(s.sharpe||0)>0.4?'var(--green)':(s.sharpe||0)<0?'var(--red)':'var(--text2)'}">\${s.sharpe?.toFixed(2)||'—'}</td>
-      <td class="hd"><span class="grade-badge \${gc}">\${grd}</span></td>
-      <td class="hd" style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--amber)">\${s.beta_nifty?.toFixed(2)||'—'}</td>
-      <td><button class="wl-btn \${wlS?'saved':''}" onclick="event.stopPropagation();toggleWl('\${s.symbol}')">\${wlS?'★':'☆'}</button></td>
-    </tr>\`;
+    return `<tr onclick="openM('${s.symbol}')" style="cursor:pointer">
+      <td style="color:var(--muted);font-size:10px;font-family:'JetBrains Mono',monospace">${i+1}</td>
+      <td><div class="sym-c">${s.symbol}${livePx}</div><div class="name-c">${s.name||''}</div><span class="sec-tag ${sct}">${s.sector||''}</span></td>
+      <td class="price-c">₹${px}</td>
+      <td><span class="ret-badge ${r>=0?'ret-up':'ret-dn'}">${r>=0?'▲':'▼'}${(r>=0?'+':'')+r.toFixed(1)+'%'}</span></td>
+      <td><span class="${sc}">${s.signal||'—'}</span></td>
+      <td><div class="prob-wrap"><div class="prob-trk"><div class="prob-fil" style="width:${pp}%;background:${pc}"></div></div><span class="prob-num" style="color:${pc}">${pp}%</span></div></td>
+      <td class="rsi-cell hd" style="color:${rsiC}">${rsi?.toFixed(1)||'—'}</td>
+      <td class="hd" style="font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;color:${(s.sharpe||0)>0.4?'var(--green)':(s.sharpe||0)<0?'var(--red)':'var(--text2)'}">${s.sharpe?.toFixed(2)||'—'}</td>
+      <td class="hd"><span class="grade-badge ${gc}">${grd}</span></td>
+      <td class="hd" style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--amber)">${s.beta_nifty?.toFixed(2)||'—'}</td>
+      <td><button class="wl-btn ${wlS?'saved':''}" onclick="event.stopPropagation();toggleWl('${s.symbol}')">${wlS?'★':'☆'}</button></td>
+    </tr>`;
   }).join('');
 }
 
