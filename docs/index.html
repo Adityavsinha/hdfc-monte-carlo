@@ -1182,30 +1182,32 @@ thead th{padding:10px 14px;font-size:10px;font-weight:600;color:var(--text2);tex
 <!-- PROFILE PANEL -->
 <div class="profile-panel" id="profilePanel">
   <div class="pp-head">
-    <h3 style="font-size:14px;font-weight:700">My Profile</h3>
+    <h3 style="font-size:14px;font-weight:700">My Watchlist</h3>
     <button class="close-x" onclick="toggleProfile()">✕</button>
   </div>
   <div id="ppContent">
-    <div style="padding:24px;text-align:center">
+    <!-- User info block — hidden for guests -->
+    <div id="ppUserInfo" style="padding:20px 24px 16px;text-align:center;border-bottom:1px solid var(--border)">
       <div class="pp-avatar" id="ppAvatar">?</div>
       <div style="font-size:15px;font-weight:700" id="ppName">—</div>
       <div style="font-size:11px;color:var(--muted);margin-top:3px" id="ppEmail">—</div>
-      <button onclick="handleSignOut()" style="margin-top:16px;padding:7px 16px;border:1px solid var(--border);border-radius:var(--rsm);background:var(--red-lt);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Sign Out</button>
+      <button onclick="handleSignOut()" style="margin-top:14px;padding:7px 16px;border:1px solid var(--border);border-radius:var(--rsm);background:var(--red-lt);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Sign Out</button>
     </div>
     <div class="pp-section">
-      <div class="pp-sec-title">Watchlist</div>
+      <div class="pp-sec-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Watchlist</span>
+        <span id="wlCount" style="font-size:10px;color:var(--muted);font-weight:600"></span>
+      </div>
       <div id="wlList"><div style="font-size:12px;color:var(--muted);text-align:center;padding:20px 0">Watchlist is empty</div></div>
     </div>
-    <div class="pp-section">
-      <div class="pp-sec-title">Portfolio Summary</div>
-      <div style="font-size:12px;color:var(--muted);text-align:center;padding:16px 0">Coming soon -track your holdings and P&L</div>
+    <!-- Guest note: shown below watchlist for non-logged-in users -->
+    <div id="ppGuestNote" style="display:none;padding:14px 20px;background:var(--s2);border-top:1px solid var(--border);border-radius:0 0 12px 12px">
+      <div style="font-size:11px;font-weight:700;margin-bottom:4px;color:var(--text)">☁ Sign in to sync across devices</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Your watchlist is saved locally. Sign in to access it everywhere.</div>
+      <button onclick="handleAuth()" style="width:100%;padding:9px;background:var(--blue);color:#fff;border:none;border-radius:var(--rsm);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Sign in with Google</button>
     </div>
   </div>
-  <div id="ppLogin" style="padding:40px 20px;text-align:center">
-    <div style="font-size:14px;font-weight:700;margin-bottom:6px">Sign in to access your profile</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:20px">Save watchlists, track portfolio, get personalized insights</div>
-    <button onclick="handleAuth()" style="padding:10px 24px;background:var(--blue-d);color:#fff;border:none;border-radius:var(--rsm);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Sign in with Google</button>
-  </div>
+  <div id="ppLogin" style="display:none"></div>
 </div>
 
 
@@ -2486,49 +2488,120 @@ function renderInsightCharts(s) {
 }
 
 // ══════════════════════════════════════════════
-//  WATCHLIST + PROFILE
+//  WATCHLIST + PROFILE  (with localStorage guest persistence)
 // ══════════════════════════════════════════════
+const LS_KEY = 'qe_watchlist_v1';
+
+/** Load watchlist from localStorage (guest fallback) */
+function loadLocalWatchlist() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+/** Persist current watchlist to localStorage */
+function saveLocalWatchlist() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(A.watchlist)); } catch {}
+}
+
+/** Toggle stock in watchlist — works for both guests and signed-in users */
 function toggleWl(sym) {
-  if(!A.user){toggleProfile();return;}
-  const idx=A.watchlist.indexOf(sym);
-  if(idx>=0)A.watchlist.splice(idx,1);else A.watchlist.push(sym);
-  applyD(); renderProfile(); saveWl();
+  const idx = A.watchlist.indexOf(sym);
+  if (idx >= 0) A.watchlist.splice(idx, 1); else A.watchlist.push(sym);
+  applyD();
+  renderProfile();
+  saveWl();
+  // Show a brief toast so guest users know it was saved
+  if (!A.user) showWlToast(A.watchlist.includes(sym) ? 'Added to watchlist' : 'Removed from watchlist');
+}
+
+/** Brief toast notification */
+function showWlToast(msg) {
+  let t = document.getElementById('wlToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'wlToast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1F2937;color:#fff;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:600;z-index:9999;transition:opacity .3s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.25)';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2000);
 }
 
 function toggleProfile() {
-  A.profileOpen=!A.profileOpen;
-  document.getElementById('profilePanel').classList.toggle('open',A.profileOpen);
+  A.profileOpen = !A.profileOpen;
+  document.getElementById('profilePanel').classList.toggle('open', A.profileOpen);
   renderProfile();
 }
 
 function renderProfile() {
-  const pp=document.getElementById('ppContent'), pl=document.getElementById('ppLogin');
-  if(!A.user){pp.style.display='none';pl.style.display='block';return;}
-  pp.style.display='block';pl.style.display='none';
-  const av=document.getElementById('ppAvatar');
-  av.textContent=(A.user.displayName||A.user.email||'U').charAt(0).toUpperCase();
-  document.getElementById('ppName').textContent   = A.user.displayName||'User';
-  document.getElementById('ppEmail').textContent  = A.user.email||'';
-  const wl=document.getElementById('wlList');
-  if(!A.watchlist.length){wl.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px 0">Watchlist is empty<br><small>Click ☆ next to any stock</small></div>';return;}
-  wl.innerHTML=A.watchlist.map(sym=>{
-    const s=A.all.find(x=>x.symbol===sym);
-    const live=A.lp[sym];
-    const pr=live?.price?'₹'+live.price.toFixed(2):(s?'₹'+s.price.toFixed(2):'—');
-    const r=s?.expected_return_pct;
+  const pp = document.getElementById('ppContent'), pl = document.getElementById('ppLogin');
+  const loginNotice = document.getElementById('ppGuestNote');
+
+  if (!A.user) {
+    // GUEST: show watchlist (from localStorage) + sign-in prompt below it
+    pp.style.display = 'block';
+    pl.style.display = 'block';
+    // Hide the user info block but show watchlist
+    document.getElementById('ppUserInfo').style.display = 'none';
+    if (loginNotice) loginNotice.style.display = 'block';
+  } else {
+    pp.style.display = 'block';
+    pl.style.display = 'none';
+    document.getElementById('ppUserInfo').style.display = 'block';
+    if (loginNotice) loginNotice.style.display = 'none';
+    const av = document.getElementById('ppAvatar');
+    av.textContent = (A.user.displayName || A.user.email || 'U').charAt(0).toUpperCase();
+    document.getElementById('ppName').textContent  = A.user.displayName || 'User';
+    document.getElementById('ppEmail').textContent = A.user.email || '';
+  }
+
+  // Render watchlist items (same for guest and logged-in)
+  const wl = document.getElementById('wlList');
+  const countEl = document.getElementById('wlCount');
+  if (countEl) countEl.textContent = A.watchlist.length ? `${A.watchlist.length} stock${A.watchlist.length > 1 ? 's' : ''}` : '';
+  if (!A.watchlist.length) {
+    wl.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px 0">Watchlist is empty<br><small>Click ☆ next to any stock to add</small></div>';
+    return;
+  }
+  // Loading state while data isn't ready
+  if (!A.all.length) {
+    wl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:20px 0"><div class="mini-spin"></div><span style="font-size:12px;color:var(--muted)">Loading...</span></div>';
+    return;
+  }
+  wl.innerHTML = A.watchlist.map(sym => {
+    const s    = A.all.find(x => x.symbol === sym);
+    const live = A.lp[sym];
+    const pr   = live?.price ? '₹' + live.price.toFixed(2) : (s ? '₹' + s.price.toFixed(2) : '—');
+    const r    = s?.expected_return_pct;
     return `<div class="wl-item" onclick="openM('${sym}');toggleProfile()">
-      <div><div style="font-size:13px;font-weight:700">${sym}</div><div style="font-size:10px;color:var(--muted)">${s?.name||'—'}</div></div>
+      <div>
+        <div style="font-size:13px;font-weight:700">${sym}</div>
+        <div style="font-size:10px;color:var(--muted)">${s?.name || '—'}</div>
+      </div>
       <div style="text-align:right">
         <div style="font-weight:700;font-family:'JetBrains Mono',monospace;font-size:12px">${pr}</div>
-        ${r!=null?`<div style="font-size:10px;color:${r>=0?'var(--green)':'var(--red)'};font-weight:700">${r>=0?'+':''}${r.toFixed(1)}%</div>`:''}
+        ${r != null ? `<div style="font-size:10px;color:${r >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:700">${r >= 0 ? '+' : ''}${r.toFixed(1)}%</div>` : ''}
       </div>
     </div>`;
   }).join('');
 }
 
 async function saveWl() {
-  if(!window._fb||!A.user)return;
-  try{await window._fb.setDoc(window._fb.doc(window._fb.db,'users',A.user.uid),{watchlist:A.watchlist,email:A.user.email,displayName:A.user.displayName,lastSeen:new Date().toISOString()},{merge:true});}catch{}
+  // Always persist to localStorage (covers guest + offline scenarios)
+  saveLocalWatchlist();
+  // If logged in, also sync to Firestore
+  if (!window._fb || !A.user) return;
+  try {
+    await window._fb.setDoc(
+      window._fb.doc(window._fb.db, 'users', A.user.uid),
+      { watchlist: A.watchlist, email: A.user.email, displayName: A.user.displayName, lastSeen: new Date().toISOString() },
+      { merge: true }
+    );
+  } catch {}
 }
 
 // ══════════════════════════════════════════════
@@ -2543,7 +2616,14 @@ function handleAuth() {
   }
   window._fb.signInWithPopup(window._fb.auth,window._fb.provider).catch(e=>alert('Sign in failed: '+e.message));
 }
-function handleSignOut(){if(!window._fb)return;window._fb.signOut(window._fb.auth);A.watchlist=[];renderProfile();}
+function handleSignOut() {
+  if (!window._fb) return;
+  // Persist current watchlist locally before clearing auth state
+  saveLocalWatchlist();
+  window._fb.signOut(window._fb.auth);
+  A.watchlist = loadLocalWatchlist(); // keep guest watchlist after logout
+  renderProfile();
+}
 
 // ══════════════════════════════════════════════
 //  UTILITIES
@@ -2569,6 +2649,8 @@ function sigClass(sig){
 // Boot -ensure A state is clean
 A.dSec = 'all';
 A.scrSec = 'all';
+// Pre-load watchlist from localStorage immediately (works for guests before Firebase resolves)
+A.watchlist = loadLocalWatchlist();
 loadAll();
 </script>
 
@@ -2596,16 +2678,36 @@ async function initFirebase() {
     window._fb={auth,db,provider:prov,signInWithPopup:authM.signInWithPopup,signOut:authM.signOut,
       onAuthStateChanged:authM.onAuthStateChanged,doc:fsM.doc,setDoc:fsM.setDoc,getDoc:fsM.getDoc};
     window._fb.onAuthStateChanged(auth, async user => {
-      A.user=user;
-      if(user){
-        document.getElementById('authBtn').style.display='none';
-        document.getElementById('userAva').style.display='flex';
-        document.getElementById('userAva').textContent=(user.displayName||user.email||'U').charAt(0).toUpperCase();
-        try{const snap=await window._fb.getDoc(window._fb.doc(db,'users',user.uid));if(snap.exists()){A.watchlist=snap.data().watchlist||[];applyD();}}catch{}
+      A.user = user;
+      if (user) {
+        document.getElementById('authBtn').style.display = 'none';
+        document.getElementById('userAva').style.display = 'flex';
+        document.getElementById('userAva').textContent = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
+        // Load from Firestore and merge with any local watchlist
+        try {
+          const snap = await window._fb.getDoc(window._fb.doc(db, 'users', user.uid));
+          const remote = snap.exists() ? (snap.data().watchlist || []) : [];
+          const local  = loadLocalWatchlist();
+          // Merge: union of remote + local, de-duped
+          const merged = [...new Set([...remote, ...local])];
+          A.watchlist = merged;
+          // Persist merged list back to both stores
+          saveLocalWatchlist();
+          if (merged.length !== remote.length) {
+            // Write merged list back to Firestore silently
+            await window._fb.setDoc(window._fb.doc(db, 'users', user.uid),
+              { watchlist: merged, email: user.email, displayName: user.displayName, lastSeen: new Date().toISOString() },
+              { merge: true }
+            ).catch(() => {});
+          }
+          applyD();
+        } catch { A.watchlist = loadLocalWatchlist(); }
       } else {
-        document.getElementById('authBtn').style.display='flex';
-        document.getElementById('userAva').style.display='none';
-        A.watchlist=[];
+        document.getElementById('authBtn').style.display = 'flex';
+        document.getElementById('userAva').style.display = 'none';
+        // Guest: restore watchlist from localStorage
+        A.watchlist = loadLocalWatchlist();
+        applyD();
       }
       renderProfile();
     });
