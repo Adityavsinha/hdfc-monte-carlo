@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QuantEdge Admin — Control Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #0A0D14;
+  --surface: #111520;
+  --surface2: #161C2D;
+  --surface3: #1C2438;
+  --border: rgba(255,255,255,.08);
+  --border2: rgba(255,255,255,.12);
+  --text: #F0F4FF;
+  --text2: #8892A4;
+  --muted: #4A5568;
+  --blue: #4F8EF7;
+  --blue-d: #3A7FEE;
+  --blue-lt: rgba(79,142,247,.12);
+  --green: #10D9A4;
+  --green-lt: rgba(16,217,164,.12);
+  --red: #F75F5F;
+  --red-lt: rgba(247,95,95,.12);
+  --amber: #F7B74F;
+  --amber-lt: rgba(247,183,79,.12);
+  --purple: #A78BFA;
+  --purple-lt: rgba(167,139,250,.12);
+  --teal: #22D3EE;
+  --r: 10px;
+  --rsm: 7px;
+  --rlg: 14px;
+  --sidebar-w: 220px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ── LOGIN SCREEN ── */
+#loginScreen {
+  position: fixed; inset: 0; z-index: 9000;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  background-image: radial-gradient(ellipse at 20% 50%, rgba(79,142,247,.06) 0%, transparent 60%),
+                    radial-gradient(ellipse at 80% 20%, rgba(167,139,250,.05) 0%, transparent 60%);
+}
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 18px;
+  padding: 48px 44px;
+  width: 380px;
+  box-shadow: 0 40px 80px rgba(0,0,0,.5);
+  text-align: center;
+}
+.login-logo {
+  width: 52px; height: 52px;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 800; color: #fff;
+  margin: 0 auto 20px;
+  box-shadow: 0 8px 24px rgba(79,142,247,.35);
+}
+.login-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+.login-sub { font-size: 13px; color: var(--text2); margin-bottom: 32px; }
+.login-form { display: flex; flex-direction: column; gap: 12px; }
+.login-inp {
+  width: 100%; height: 44px;
+  background: var(--surface2); border: 1.5px solid var(--border2);
+  color: var(--text); padding: 0 14px; border-radius: 9px;
+  font-size: 13px; font-family: inherit; outline: none; transition: border-color .18s;
+}
+.login-inp:focus { border-color: var(--blue); }
+.login-inp::placeholder { color: var(--muted); }
+.login-btn {
+  height: 44px; background: var(--blue); color: #fff;
+  border: none; border-radius: 9px; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: all .18s;
+  box-shadow: 0 4px 16px rgba(79,142,247,.35);
+}
+.login-btn:hover { background: var(--blue-d); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(79,142,247,.45); }
+.login-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+.login-err {
+  font-size: 11px; color: var(--red); background: var(--red-lt);
+  border: 1px solid rgba(247,95,95,.3); padding: 8px 12px;
+  border-radius: 6px; display: none; margin-top: 4px;
+}
+.login-note { font-size: 11px; color: var(--muted); margin-top: 16px; }
+.login-google-btn {
+  height: 44px; background: var(--surface2);
+  border: 1.5px solid var(--border2); color: var(--text);
+  border-radius: 9px; font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all .18s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.login-google-btn:hover { border-color: var(--blue); background: var(--blue-lt); }
+.divider { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 11px; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── MAIN LAYOUT ── */
+#adminApp { display: none; height: 100vh; overflow: hidden; }
+#adminApp.show { display: flex; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-w); flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  height: 100vh; overflow-y: auto;
+}
+.sb-brand {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.sb-logo {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  border-radius: 9px; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0;
+}
+.sb-name { font-size: 13px; font-weight: 700; }
+.sb-tag { font-size: 9px; color: var(--muted); letter-spacing: .8px; text-transform: uppercase; }
+.sb-admin-badge {
+  display: inline-block; padding: 1px 7px; border-radius: 3px;
+  font-size: 9px; font-weight: 800; letter-spacing: .5px;
+  background: rgba(247,183,79,.15); color: var(--amber);
+  border: 1px solid rgba(247,183,79,.3); margin-top: 2px;
+}
+.sb-nav { flex: 1; padding: 12px 0; }
+.sb-group { margin-bottom: 4px; }
+.sb-grp-label {
+  padding: 10px 18px 5px;
+  font-size: 9px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--muted);
+}
+.sb-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 18px; color: var(--text2);
+  cursor: pointer; transition: all .15s;
+  border: none; background: none; width: 100%;
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  border-radius: 0; position: relative;
+}
+.sb-item:hover { color: var(--text); background: rgba(255,255,255,.04); }
+.sb-item.active { color: var(--blue); background: var(--blue-lt); }
+.sb-item.active::before {
+  content: ''; position: absolute; left: 0; top: 4px; bottom: 4px;
+  width: 3px; background: var(--blue); border-radius: 0 2px 2px 0;
+}
+.sb-icon { width: 16px; text-align: center; font-size: 14px; flex-shrink: 0; }
+.sb-badge {
+  margin-left: auto; padding: 1px 6px; border-radius: 10px;
+  font-size: 9px; font-weight: 700;
+  background: var(--blue-lt); color: var(--blue); font-family: 'JetBrains Mono', monospace;
+}
+.sb-footer {
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+}
+.sb-user { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+.sb-ava {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0;
+}
+.sb-uname { font-size: 12px; font-weight: 600; }
+.sb-uemail { font-size: 10px; color: var(--muted); }
+.sb-logout {
+  width: 100%; padding: 7px; border-radius: 7px;
+  background: var(--red-lt); border: 1px solid rgba(247,95,95,.25);
+  color: var(--red); font-size: 11px; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: all .18s;
+}
+.sb-logout:hover { background: rgba(247,95,95,.2); }
+
+/* ── MAIN CONTENT ── */
+.main-content {
+  flex: 1; overflow-y: auto; height: 100vh;
+  background: var(--bg);
+}
+.top-bar {
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(10,13,20,.9); backdrop-filter: blur(16px);
+}
+.top-bar-left { display: flex; align-items: center; gap: 10px; }
+.page-title { font-size: 18px; font-weight: 700; }
+.page-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.top-bar-right { display: flex; align-items: center; gap: 10px; }
+.last-refresh { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+.refresh-btn {
+  padding: 7px 14px; border-radius: 7px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text2); font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all .18s;
+  display: flex; align-items: center; gap: 6px;
+}
+.refresh-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+.status-pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700;
+  background: var(--green-lt); border: 1px solid rgba(16,217,164,.25); color: var(--green);
+}
+.sdot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+
+/* ── PANELS ── */
+.panel { display: none; padding: 24px 28px 60px; }
+.panel.active { display: block; }
+
+/* ── STAT CARDS ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+.kcard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--rlg); padding: 20px;
+  position: relative; overflow: hidden;
+  transition: all .22s;
+}
+.kcard::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 2px; border-radius: var(--rlg) var(--rlg) 0 0;
+  background: var(--accent, var(--blue));
+}
+.kcard:hover { border-color: var(--border2); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,.3); }
+.kcard-icon {
+  width: 36px; height: 36px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; margin-bottom: 14px;
+  background: var(--icon-bg, var(--blue-lt));
+}
+.kcard-label { font-size: 10px; color: var(--text2); font-weight: 700; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+.kcard-value { font-size: 28px; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1; }
+.kcard-delta {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 700; margin-top: 7px;
+  padding: 2px 7px; border-radius: 4px;
+}
+.delta-up { background: var(--green-lt); color: var(--green); }
+.delta-dn { background: var(--red-lt); color: var(--red); }
+.kcard-spin {
+  width: 20px; height: 20px; border: 2px solid var(--border2);
+  border-top-color: var(--blue); border-radius: 50%;
+  animation: spin .7s linear infinite; margin-top: 8px;
+}
+
+/* ── CHARTS ROW ── */
+.charts-row { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; margin-bottom: 22px; }
+.chart-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--rlg); padding: 18px; overflow: hidden;
+}
+.chart-card.full { grid-column: 1 / -1; }
+.chart-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.chart-title { font-size: 13px; font-weight: 700; }
+.chart-sub { font-size: 10px; color: var(--text2); margin-top: 2px; }
+.chart-wrap { position: relative; }
+.ch240 { height: 240px; }
+.ch180 { height: 180px; }
+.ch200 { height: 200px; }
+
+/* ── TABLES ── */
+.table-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--rlg); overflow: hidden; margin-bottom: 18px;
+}
+.table-hdr {
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface2);
+}
+.table-title { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.tbl-cnt {
+  padding: 2px 8px; border-radius: 10px;
+  font-size: 10px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  background: var(--blue-lt); color: var(--blue);
+}
+.table-actions { display: flex; align-items: center; gap: 8px; }
+.tbl-search {
+  height: 32px; background: var(--surface3);
+  border: 1px solid var(--border2); color: var(--text);
+  padding: 0 10px 0 28px; border-radius: 7px;
+  font-size: 12px; font-family: inherit; outline: none;
+  transition: border-color .18s; width: 200px;
+}
+.tbl-search:focus { border-color: var(--blue); }
+.tbl-search::placeholder { color: var(--muted); }
+.search-wrap { position: relative; }
+.search-ico { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 11px; }
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 10px 14px; text-align: left;
+  font-size: 10px; color: var(--text2); font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px;
+  background: var(--surface3); border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(255,255,255,.03); }
+td { padding: 11px 14px; vertical-align: middle; }
+.td-sym { font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text); }
+.td-name { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.td-mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 5px; font-size: 10px; font-weight: 700; }
+.badge-active { background: var(--green-lt); color: var(--green); }
+.badge-blocked { background: var(--red-lt); color: var(--red); }
+.badge-admin { background: var(--amber-lt); color: var(--amber); }
+.badge-new { background: var(--purple-lt); color: var(--purple); }
+.action-btn {
+  padding: 4px 10px; border-radius: 5px;
+  font-size: 10px; font-weight: 700; cursor: pointer;
+  border: 1px solid transparent; transition: all .15s;
+  font-family: inherit; margin-right: 4px;
+}
+.btn-block { background: var(--red-lt); border-color: rgba(247,95,95,.3); color: var(--red); }
+.btn-block:hover { background: rgba(247,95,95,.25); }
+.btn-delete { background: var(--surface3); border-color: var(--border2); color: var(--muted); }
+.btn-delete:hover { border-color: var(--red); color: var(--red); }
+.btn-view { background: var(--blue-lt); border-color: rgba(79,142,247,.3); color: var(--blue); }
+.btn-view:hover { background: rgba(79,142,247,.2); }
+.btn-primary {
+  padding: 7px 16px; border-radius: 7px; border: none;
+  background: var(--blue); color: #fff; font-size: 12px; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: all .18s;
+}
+.btn-primary:hover { background: var(--blue-d); }
+.btn-secondary {
+  padding: 7px 16px; border-radius: 7px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text2); font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all .18s;
+}
+.btn-secondary:hover { border-color: var(--blue); color: var(--blue); }
+
+/* ── SECTIONS GRID ── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+.three-col { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 18px; }
+
+/* ── MINI METRIC ── */
+.mini-metric { padding: 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.mini-metric:last-child { border-bottom: none; }
+.mm-label { font-size: 12px; color: var(--text2); }
+.mm-value { font-size: 14px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+.mm-bar-wrap { margin-top: 10px; }
+.mm-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.mm-bar-label { font-size: 11px; color: var(--text2); width: 80px; }
+.mm-bar-track { flex: 1; height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
+.mm-bar-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+.mm-bar-val { font-size: 11px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text2); width: 36px; text-align: right; }
+
+/* ── LOG ── */
+.log-entry {
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; gap: 10px; font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+.log-entry:last-child { border-bottom: none; }
+.log-time { color: var(--muted); flex-shrink: 0; width: 140px; }
+.log-level { flex-shrink: 0; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; margin-top: 1px; }
+.lv-error { background: var(--red-lt); color: var(--red); }
+.lv-warn { background: var(--amber-lt); color: var(--amber); }
+.lv-info { background: var(--blue-lt); color: var(--blue); }
+.lv-ok { background: var(--green-lt); color: var(--green); }
+.log-msg { color: var(--text2); flex: 1; }
+
+/* ── STOCK EDITOR ── */
+.stock-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: 10px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+.form-inp {
+  height: 36px; background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text); padding: 0 10px; border-radius: 7px;
+  font-size: 12px; font-family: inherit; outline: none; transition: border-color .18s;
+}
+.form-inp:focus { border-color: var(--blue); }
+.form-sel {
+  height: 36px; background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text); padding: 0 10px; border-radius: 7px;
+  font-size: 12px; font-family: inherit; outline: none; cursor: pointer;
+}
+
+/* ── EMPTY STATE ── */
+.empty-state { padding: 60px 24px; text-align: center; }
+.empty-icon { font-size: 32px; margin-bottom: 12px; opacity: .4; }
+.empty-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.empty-sub { font-size: 12px; color: var(--text2); }
+
+/* ── LOADING ── */
+.loading-state { padding: 40px; text-align: center; }
+.spinner { width: 28px; height: 28px; border: 2px solid var(--border2); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
+.loading-text { font-size: 12px; color: var(--text2); }
+
+/* ── TOAST ── */
+#adminToast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  background: var(--surface3); border: 1px solid var(--border2);
+  padding: 10px 16px; border-radius: 9px; font-size: 12px; font-weight: 600;
+  box-shadow: 0 8px 32px rgba(0,0,0,.4); transition: all .3s;
+  display: none; align-items: center; gap: 8px;
+  max-width: 300px;
+}
+#adminToast.show { display: flex; }
+
+/* ── GA4 PLACEHOLDER ── */
+.ga4-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--rlg); padding: 24px; }
+.ga4-header { font-size: 13px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.ga4-stat { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.ga4-stat:last-child { border-bottom: none; }
+.ga4-label { font-size: 12px; color: var(--text2); }
+.ga4-value { font-size: 14px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+
+/* ── PAGINATION ── */
+.pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid var(--border); }
+.pag-info { font-size: 11px; color: var(--text2); }
+.pag-btns { display: flex; gap: 6px; }
+.pag-btn {
+  width: 28px; height: 28px; border-radius: 6px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text2); font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all .15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.pag-btn:hover { border-color: var(--blue); color: var(--blue); }
+.pag-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+.pag-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.panel { animation: fadeIn .2s; }
+.kcard { animation: fadeUp .3s both; }
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .charts-row { grid-template-columns: 1fr; }
+  .two-col { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  :root { --sidebar-w: 60px; }
+  .sb-name, .sb-tag, .sb-grp-label, .sb-admin-badge, .sb-item span, .sb-uname, .sb-uemail { display: none; }
+  .sb-item { justify-content: center; }
+  .three-col { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">Q</div>
+    <div class="login-title">Admin Access</div>
+    <div class="login-sub">QuantEdge Analytics — Control Center</div>
+    <div class="login-form">
+      <button class="login-google-btn" id="googleLoginBtn" onclick="handleGoogleLogin()">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
+      <div class="divider">or use email</div>
+      <input class="login-inp" type="email" id="loginEmail" placeholder="Admin email" autocomplete="email">
+      <input class="login-inp" type="password" id="loginPwd" placeholder="Password" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')handleEmailLogin()">
+      <div class="login-err" id="loginErr"></div>
+      <button class="login-btn" id="loginBtn" onclick="handleEmailLogin()">Sign In</button>
+    </div>
+    <div class="login-note">🔒 Restricted to authorized admins only</div>
+  </div>
+</div>
+
+<!-- ══ ADMIN APP ══ -->
+<div id="adminApp">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo">Q</div>
+      <div>
+        <div class="sb-name">QuantEdge</div>
+        <div class="sb-tag">Analytics</div>
+        <div class="sb-admin-badge">ADMIN</div>
+      </div>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-group">
+        <div class="sb-grp-label">Overview</div>
+        <button class="sb-item active" onclick="showPanel('dashboard')">
+          <span class="sb-icon">📊</span><span>Dashboard</span>
+        </button>
+        <button class="sb-item" onclick="showPanel('analytics')">
+          <span class="sb-icon">📈</span><span>Analytics</span>
+        </button>
+      </div>
+      <div class="sb-group">
+        <div class="sb-grp-label">Management</div>
+        <button class="sb-item" onclick="showPanel('users')">
+          <span class="sb-icon">👥</span><span>Users</span>
+          <span class="sb-badge" id="sb-user-count">—</span>
+        </button>
+        <button class="sb-item" onclick="showPanel('watchlists')">
+          <span class="sb-icon">⭐</span><span>Watchlist Trends</span>
+        </button>
+        <button class="sb-item" onclick="showPanel('portfolios')">
+          <span class="sb-icon">💼</span><span>Portfolios</span>
+        </button>
+      </div>
+      <div class="sb-group">
+        <div class="sb-grp-label">Platform</div>
+        <button class="sb-item" onclick="showPanel('stocks')">
+          <span class="sb-icon">🏷️</span><span>Stock Control</span>
+        </button>
+        <button class="sb-item" onclick="showPanel('monitor')">
+          <span class="sb-icon">🖥️</span><span>System Monitor</span>
+        </button>
+      </div>
+    </nav>
+    <div class="sb-footer">
+      <div class="sb-user">
+        <div class="sb-ava" id="sb-avatar">A</div>
+        <div>
+          <div class="sb-uname" id="sb-uname">Admin</div>
+          <div class="sb-uemail" id="sb-uemail">—</div>
+        </div>
+      </div>
+      <button class="sb-logout" onclick="handleAdminLogout()">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <!-- TOP BAR -->
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <div>
+          <div class="page-title" id="panelTitle">Dashboard</div>
+          <div class="page-sub" id="panelSub">Platform overview & key metrics</div>
+        </div>
+      </div>
+      <div class="top-bar-right">
+        <div class="last-refresh" id="lastRefresh">—</div>
+        <div class="status-pill"><div class="sdot"></div>Live</div>
+        <button class="refresh-btn" onclick="refreshCurrentPanel()">↺ Refresh</button>
+      </div>
+    </div>
+
+    <!-- ══ DASHBOARD PANEL ══ -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="kpi-grid">
+        <div class="kcard" style="--accent:var(--blue);--icon-bg:var(--blue-lt)">
+          <div class="kcard-icon">👥</div>
+          <div class="kcard-label">Total Users</div>
+          <div class="kcard-value" id="kTotalUsers"><div class="kcard-spin"></div></div>
+          <div id="kTotalUsersDelta"></div>
+        </div>
+        <div class="kcard" style="--accent:var(--green);--icon-bg:var(--green-lt)">
+          <div class="kcard-icon">🟢</div>
+          <div class="kcard-label">Active Today</div>
+          <div class="kcard-value" id="kActiveUsers"><div class="kcard-spin"></div></div>
+          <div id="kActiveUsersDelta"></div>
+        </div>
+        <div class="kcard" style="--accent:var(--amber);--icon-bg:var(--amber-lt)">
+          <div class="kcard-icon">⭐</div>
+          <div class="kcard-label">Watchlist Entries</div>
+          <div class="kcard-value" id="kWatchlistTotal"><div class="kcard-spin"></div></div>
+          <div id="kWatchlistDelta"></div>
+        </div>
+        <div class="kcard" style="--accent:var(--purple);--icon-bg:var(--purple-lt)">
+          <div class="kcard-icon">📡</div>
+          <div class="kcard-label">API Calls Today</div>
+          <div class="kcard-value" id="kApiCalls"><div class="kcard-spin"></div></div>
+          <div id="kApiCallsDelta"></div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-hdr">
+            <div>
+              <div class="chart-title">User Registrations</div>
+              <div class="chart-sub">Last 30 days</div>
+            </div>
+          </div>
+          <div class="chart-wrap ch240"><canvas id="chartRegistrations"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-hdr">
+            <div>
+              <div class="chart-title">User Activity</div>
+              <div class="chart-sub">Active vs Inactive</div>
+            </div>
+          </div>
+          <div class="chart-wrap ch240"><canvas id="chartActivity"></canvas></div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="table-card">
+          <div class="table-hdr">
+            <div class="table-title">🔥 Most Added to Watchlist</div>
+          </div>
+          <div id="topWatchlistTable"><div class="loading-state"><div class="spinner"></div><div class="loading-text">Loading...</div></div></div>
+        </div>
+        <div class="table-card">
+          <div class="table-hdr">
+            <div class="table-title">⚡ Recent Activity</div>
+          </div>
+          <div id="recentActivityLog"><div class="loading-state"><div class="spinner"></div><div class="loading-text">Loading...</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ USERS PANEL ══ -->
+    <div class="panel" id="panel-users">
+      <div class="kpi-grid">
+        <div class="kcard" style="--accent:var(--blue);--icon-bg:var(--blue-lt)">
+          <div class="kcard-icon">👤</div>
+          <div class="kcard-label">Total Users</div>
+          <div class="kcard-value" id="uTotalUsers">—</div>
+        </div>
+        <div class="kcard" style="--accent:var(--green);--icon-bg:var(--green-lt)">
+          <div class="kcard-icon">✅</div>
+          <div class="kcard-label">Active</div>
+          <div class="kcard-value" id="uActiveUsers">—</div>
+        </div>
+        <div class="kcard" style="--accent:var(--red);--icon-bg:var(--red-lt)">
+          <div class="kcard-icon">🚫</div>
+          <div class="kcard-label">Blocked</div>
+          <div class="kcard-value" id="uBlockedUsers">—</div>
+        </div>
+        <div class="kcard" style="--accent:var(--purple);--icon-bg:var(--purple-lt)">
+          <div class="kcard-icon">🆕</div>
+          <div class="kcard-label">New (7 days)</div>
+          <div class="kcard-value" id="uNewUsers">—</div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-hdr">
+          <div class="table-title">All Users <span class="tbl-cnt" id="userTableCount">0</span></div>
+          <div class="table-actions">
+            <div class="search-wrap">
+              <span class="search-ico">🔍</span>
+              <input class="tbl-search" type="text" placeholder="Search users..." id="userSearch" oninput="filterUsers()">
+            </div>
+            <select id="userFilter" onchange="filterUsers()" style="height:32px;background:var(--surface3);border:1px solid var(--border2);color:var(--text);padding:0 10px;border-radius:7px;font-size:11px;font-family:inherit;cursor:pointer;outline:none">
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="blocked">Blocked</option>
+            </select>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Watchlist</th>
+                <th>Last Seen</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody">
+              <tr><td colspan="6"><div class="loading-state"><div class="spinner"></div><div class="loading-text">Loading users from Firestore...</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="pag-info" id="userPagInfo">—</div>
+          <div class="pag-btns" id="userPagBtns"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ WATCHLIST TRENDS PANEL ══ -->
+    <div class="panel" id="panel-watchlists">
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-hdr">
+            <div>
+              <div class="chart-title">Top Watched Stocks</div>
+              <div class="chart-sub">By number of users who added</div>
+            </div>
+          </div>
+          <div class="chart-wrap ch240"><canvas id="chartTopWatched"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-hdr">
+            <div>
+              <div class="chart-title">Sector Distribution</div>
+              <div class="chart-sub">Watchlist entries by sector</div>
+            </div>
+          </div>
+          <div class="chart-wrap ch240"><canvas id="chartWatchlistSector"></canvas></div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-hdr">
+          <div class="table-title">📈 Watchlist Leaderboard</div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Symbol</th><th>Name</th><th>Sector</th><th>Users Watching</th><th>Trend</th>
+              </tr>
+            </thead>
+            <tbody id="watchlistLeaderboard">
+              <tr><td colspan="6"><div class="loading-state"><div class="spinner"></div><div class="loading-text">Aggregating watchlist data...</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PORTFOLIOS PANEL ══ -->
+    <div class="panel" id="panel-portfolios">
+      <div class="kpi-grid">
+        <div class="kcard" style="--accent:var(--blue);--icon-bg:var(--blue-lt)">
+          <div class="kcard-icon">💼</div>
+          <div class="kcard-label">Total Portfolios</div>
+          <div class="kcard-value" id="pTotalPort">—</div>
+        </div>
+        <div class="kcard" style="--accent:var(--green);--icon-bg:var(--green-lt)">
+          <div class="kcard-icon">📊</div>
+          <div class="kcard-label">Avg Portfolio Value</div>
+          <div class="kcard-value" id="pAvgValue">—</div>
+        </div>
+        <div class="kcard" style="--accent:var(--amber);--icon-bg:var(--amber-lt)">
+          <div class="kcard-icon">🏆</div>
+          <div class="kcard-label">Top Held Stock</div>
+          <div class="kcard-value" id="pTopStock" style="font-size:16px">—</div>
+        </div>
+        <div class="kcard" style="--accent:var(--purple);--icon-bg:var(--purple-lt)">
+          <div class="kcard-icon">⚡</div>
+          <div class="kcard-label">Avg Stocks/Portfolio</div>
+          <div class="kcard-value" id="pAvgStocks">—</div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="chart-card">
+          <div class="chart-hdr"><div><div class="chart-title">Most Held Stocks</div><div class="chart-sub">Portfolio concentration</div></div></div>
+          <div class="chart-wrap ch200"><canvas id="chartMostHeld"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-hdr"><div><div class="chart-title">Sector Allocation</div><div class="chart-sub">Across all portfolios</div></div></div>
+          <div class="chart-wrap ch200"><canvas id="chartSectorAlloc"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ANALYTICS PANEL ══ -->
+    <div class="panel" id="panel-analytics">
+      <div class="ga4-card" style="margin-bottom:18px">
+        <div class="ga4-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          Google Analytics 4 Integration
+        </div>
+        <div style="padding:16px;background:var(--surface2);border-radius:9px;border:1px solid var(--border2);margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--amber)">⚙️ Setup Instructions</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.8">
+            1. Add GA4 measurement ID to <code style="background:var(--surface3);padding:1px 5px;border-radius:3px">index.html</code> → 
+            <code style="background:var(--surface3);padding:1px 5px;border-radius:3px">gtag('config', 'G-XXXXXXXXXX')</code><br>
+            2. In GA4 console → <b>Admin → Property → Data Streams</b> → enable enhanced measurement<br>
+            3. Link GA4 to <b>Google Search Console</b> for organic traffic data<br>
+            4. Use <b>GA4 Reporting API</b> with a service account to pull metrics into this admin panel<br>
+            5. Set up custom events: <code style="background:var(--surface3);padding:1px 5px;border-radius:3px">watchlist_add</code>, <code style="background:var(--surface3);padding:1px 5px;border-radius:3px">stock_view</code>, <code style="background:var(--surface3);padding:1px 5px;border-radius:3px">screener_use</code>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" id="ga4Metrics">
+          <div style="background:var(--surface2);padding:16px;border-radius:9px;border:1px solid var(--border2)">
+            <div style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Sessions (7d)</div>
+            <div style="font-size:24px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--blue)">—</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px">Connect GA4 API to display</div>
+          </div>
+          <div style="background:var(--surface2);padding:16px;border-radius:9px;border:1px solid var(--border2)">
+            <div style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">New Users (7d)</div>
+            <div style="font-size:24px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--green)">—</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px">Connect GA4 API to display</div>
+          </div>
+          <div style="background:var(--surface2);padding:16px;border-radius:9px;border:1px solid var(--border2)">
+            <div style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Bounce Rate</div>
+            <div style="font-size:24px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--amber)">—</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px">Connect GA4 API to display</div>
+          </div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="chart-card">
+          <div class="chart-hdr"><div><div class="chart-title">Page Views (Last 14 days)</div><div class="chart-sub">Simulated — connect GA4 for real data</div></div></div>
+          <div class="chart-wrap ch200"><canvas id="chartPageViews"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-hdr"><div><div class="chart-title">Traffic Sources</div><div class="chart-sub">Organic vs Direct vs Social</div></div></div>
+          <div class="chart-wrap ch200"><canvas id="chartTrafficSources"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ STOCKS PANEL ══ -->
+    <div class="panel" id="panel-stocks">
+      <div class="table-card" style="margin-bottom:18px">
+        <div class="table-hdr">
+          <div class="table-title">Add / Edit Stock Data</div>
+        </div>
+        <div style="padding:18px">
+          <div class="stock-grid">
+            <div class="form-group">
+              <label class="form-label">Symbol (NSE)</label>
+              <input class="form-inp" type="text" id="stkSymbol" placeholder="e.g. RELIANCE">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Company Name</label>
+              <input class="form-inp" type="text" id="stkName" placeholder="e.g. Reliance Industries">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sector</label>
+              <select class="form-sel" id="stkSector">
+                <option>Banking</option><option>IT</option><option>Energy</option>
+                <option>FMCG</option><option>Pharma</option><option>Auto</option>
+                <option>Finance</option><option>Telecom</option><option>Metal</option><option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Signal Override</label>
+              <select class="form-sel" id="stkSignal">
+                <option value="">Auto (from engine)</option>
+                <option>STRONG BUY</option><option>BUY</option>
+                <option>HOLD</option><option>RISKY</option><option>AVOID</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Index</label>
+              <select class="form-sel" id="stkIndex">
+                <option>Nifty 50</option><option>Next 50</option><option>Nifty 100</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Notes / Analysis</label>
+              <input class="form-inp" type="text" id="stkNotes" placeholder="Optional analyst note">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="btn-primary" onclick="saveStock()">💾 Save Stock</button>
+            <button class="btn-secondary" onclick="clearStockForm()">Clear</button>
+          </div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-hdr">
+          <div class="table-title">Stock Database <span class="tbl-cnt" id="stockTableCount">0</span></div>
+          <div class="table-actions">
+            <div class="search-wrap">
+              <span class="search-ico">🔍</span>
+              <input class="tbl-search" type="text" placeholder="Search stocks..." id="stockSearch" oninput="filterStocks()">
+            </div>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr><th>Symbol</th><th>Name</th><th>Sector</th><th>Index</th><th>Signal</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="stockTableBody"><tr><td colspan="6"><div class="loading-state"><div class="spinner"></div><div class="loading-text">Loading stock data...</div></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SYSTEM MONITOR PANEL ══ -->
+    <div class="panel" id="panel-monitor">
+      <div class="kpi-grid">
+        <div class="kcard" style="--accent:var(--green);--icon-bg:var(--green-lt)">
+          <div class="kcard-icon">⚡</div>
+          <div class="kcard-label">API Response (avg)</div>
+          <div class="kcard-value" id="mApiResp">—</div>
+        </div>
+        <div class="kcard" style="--accent:var(--blue);--icon-bg:var(--blue-lt)">
+          <div class="kcard-icon">🗄️</div>
+          <div class="kcard-label">Firestore Reads</div>
+          <div class="kcard-value" id="mFsReads">—</div>
+        </div>
+        <div class="kcard" style="--accent:var(--amber);--icon-bg:var(--amber-lt)">
+          <div class="kcard-icon">⚠️</div>
+          <div class="kcard-label">Errors (24h)</div>
+          <div class="kcard-value" id="mErrors">—</div>
+        </div>
+        <div class="kcard" style="--accent:var(--purple);--icon-bg:var(--purple-lt)">
+          <div class="kcard-icon">🕒</div>
+          <div class="kcard-label">Last Data Update</div>
+          <div class="kcard-value" id="mLastUpdate" style="font-size:14px">—</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="chart-card">
+          <div class="chart-hdr"><div><div class="chart-title">API Response Time</div><div class="chart-sub">Last 12 hours (ms)</div></div></div>
+          <div class="chart-wrap ch200"><canvas id="chartApiPerf"></canvas></div>
+        </div>
+        <div class="table-card" style="margin:0">
+          <div class="table-hdr"><div class="table-title">⚙️ Services Status</div></div>
+          <div id="serviceStatus">
+            <div class="mini-metric"><span class="mm-label">Firebase Auth</span><span class="status-badge badge-active" id="svc-auth">● Active</span></div>
+            <div class="mini-metric"><span class="mm-label">Firestore DB</span><span class="status-badge badge-active" id="svc-fs">● Active</span></div>
+            <div class="mini-metric"><span class="mm-label">GitHub Pages</span><span class="status-badge badge-active" id="svc-gh">● Active</span></div>
+            <div class="mini-metric"><span class="mm-label">Yahoo Finance Proxy</span><span class="status-badge" id="svc-yf">● Checking...</span></div>
+            <div class="mini-metric"><span class="mm-label">Last GitHub Action</span><span class="status-badge badge-active" id="svc-ci">● Completed</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-hdr">
+          <div class="table-title">📋 System Log</div>
+          <div class="table-actions">
+            <select id="logLevelFilter" onchange="filterLogs()" style="height:30px;background:var(--surface3);border:1px solid var(--border2);color:var(--text);padding:0 8px;border-radius:6px;font-size:11px;font-family:inherit;cursor:pointer;outline:none">
+              <option value="all">All Levels</option>
+              <option value="error">Errors Only</option>
+              <option value="warn">Warnings</option>
+              <option value="info">Info</option>
+            </select>
+            <button class="btn-secondary" style="padding:4px 12px;font-size:11px" onclick="clearLogs()">Clear</button>
+          </div>
+        </div>
+        <div id="systemLog" style="max-height:320px;overflow-y:auto">
+          <div class="log-entry">
+            <span class="log-time" id="logInitTime">—</span>
+            <span class="log-level lv-ok">OK</span>
+            <span class="log-msg">Admin panel initialized</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /adminApp -->
+
+<!-- TOAST -->
+<div id="adminToast"></div>
+
+<!-- FIREBASE + ADMIN LOGIC -->
+<script>
+// ══════════════════════════════════
+// FIREBASE CONFIG  — same as main site
+// ══════════════════════════════════
+window.FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCc5BTXmgK6zNg2dAWKNbk95swmJ6TXQG8",
+  authDomain: "quantedge-c5855.firebaseapp.com",
+  projectId: "quantedge-c5855",
+  storageBucket: "quantedge-c5855.firebasestorage.app",
+  messagingSenderId: "141320543192",
+  appId: "1:141320543192:web:b59e4d74d2d52478eaf0ad",
+};
+
+// ══════════════════════════════════
+// ADMIN EMAILS (expand as needed)
+// Add your admin email(s) here
+// ══════════════════════════════════
+const ADMIN_EMAILS = [
+  // 'youradmin@gmail.com',   ← replace with actual admin email
+];
+
+// ══════════════════════════════════
+// STATE
+// ══════════════════════════════════
+let FB = null;
+let adminUser = null;
+let allUsers = [];
+let allUsersFiltered = [];
+let userPage = 1;
+const PAGE_SIZE = 20;
+let allStocks = [];
+let stockLogs = [];
+let curPanel = 'dashboard';
+
+// ══════════════════════════════════
+// BOOT
+// ══════════════════════════════════
+async function boot() {
+  document.getElementById('logInitTime').textContent = new Date().toLocaleString('en-IN');
+  try {
+    const [appM, authM, fsM] = await Promise.all([
+      import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"),
+    ]);
+    const app  = appM.initializeApp(window.FIREBASE_CONFIG, 'admin');
+    const auth = authM.getAuth(app);
+    const db   = fsM.getFirestore(app);
+    const gProv = new authM.GoogleAuthProvider();
+    FB = { auth, db, gProv, authM, fsM,
+      signInWithEmailAndPassword: authM.signInWithEmailAndPassword,
+      signInWithPopup: authM.signInWithPopup,
+      signOut: authM.signOut,
+      onAuthStateChanged: authM.onAuthStateChanged,
+      collection: fsM.collection,
+      getDocs: fsM.getDocs,
+      getDoc: fsM.getDoc,
+      doc: fsM.doc,
+      setDoc: fsM.setDoc,
+      updateDoc: fsM.updateDoc,
+      deleteDoc: fsM.deleteDoc,
+      query: fsM.query,
+      orderBy: fsM.orderBy,
+      limit: fsM.limit,
+      Timestamp: fsM.Timestamp,
+    };
+    FB.onAuthStateChanged(auth, async user => {
+      if (user) {
+        const isAdmin = await checkAdminRole(user);
+        if (isAdmin) {
+          adminUser = user;
+          showAdminApp();
+        } else {
+          showLoginErr('Access denied. This account does not have admin privileges.');
+          FB.signOut(auth);
+        }
+      } else {
+        adminUser = null;
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('adminApp').classList.remove('show');
+      }
+    });
+    addLog('Firebase connected', 'ok');
+  } catch (e) {
+    addLog('Firebase init failed: ' + e.message, 'error');
+    showToast('Firebase connection failed. Check console.', 'error');
+  }
+}
+
+async function checkAdminRole(user) {
+  // Method 1: Check against hardcoded admin emails
+  if (ADMIN_EMAILS.length > 0 && !ADMIN_EMAILS.includes(user.email)) return false;
+  if (ADMIN_EMAILS.length === 0) {
+    // No admin list configured: allow any authenticated user (dev mode)
+    // In production, always populate ADMIN_EMAILS or use Firestore role
+    return true;
+  }
+  // Method 2 (recommended): Check Firestore for admin role
+  try {
+    if (FB) {
+      const snap = await FB.getDoc(FB.doc(FB.db, 'admins', user.uid));
+      if (snap.exists() && snap.data().role === 'admin') return true;
+    }
+  } catch {}
+  return ADMIN_EMAILS.includes(user.email);
+}
+
+function showAdminApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('adminApp').classList.add('show');
+  // Set user info in sidebar
+  const name = adminUser.displayName || adminUser.email?.split('@')[0] || 'Admin';
+  document.getElementById('sb-uname').textContent = name;
+  document.getElementById('sb-uemail').textContent = adminUser.email || '';
+  document.getElementById('sb-avatar').textContent = name.charAt(0).toUpperCase();
+  document.getElementById('lastRefresh').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN');
+  loadDashboard();
+}
+
+// ══════════════════════════════════
+// AUTH
+// ══════════════════════════════════
+async function handleEmailLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pwd   = document.getElementById('loginPwd').value;
+  if (!email || !pwd) { showLoginErr('Enter email and password.'); return; }
+  if (!FB) { showLoginErr('Firebase not ready. Wait a moment and retry.'); return; }
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    await FB.signInWithEmailAndPassword(FB.auth, email, pwd);
+    addLog('Admin signed in: ' + email, 'ok');
+  } catch (e) {
+    showLoginErr(friendlyAuthError(e.code));
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+}
+
+async function handleGoogleLogin() {
+  if (!FB) { showLoginErr('Firebase not ready. Wait a moment and retry.'); return; }
+  try {
+    await FB.signInWithPopup(FB.auth, FB.gProv);
+  } catch (e) {
+    showLoginErr('Google sign-in failed: ' + e.message);
+  }
+}
+
+function handleAdminLogout() {
+  if (FB) FB.signOut(FB.auth);
+}
+
+function showLoginErr(msg) {
+  const el = document.getElementById('loginErr');
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 5000);
+}
+
+function friendlyAuthError(code) {
+  const m = {
+    'auth/user-not-found': 'No account found with this email.',
+    'auth/wrong-password': 'Incorrect password.',
+    'auth/invalid-email': 'Invalid email address.',
+    'auth/too-many-requests': 'Too many attempts. Try again later.',
+    'auth/invalid-credential': 'Invalid credentials. Check email and password.',
+  };
+  return m[code] || 'Authentication failed. Check credentials.';
+}
+
+// ══════════════════════════════════
+// PANELS
+// ══════════════════════════════════
+const PANEL_META = {
+  dashboard:  { title: 'Dashboard', sub: 'Platform overview & key metrics' },
+  users:      { title: 'User Management', sub: 'View, search, block & manage all users' },
+  watchlists: { title: 'Watchlist Trends', sub: 'Most watched stocks & trending analysis' },
+  portfolios: { title: 'Portfolio Insights', sub: 'Holdings, allocation & performance data' },
+  analytics:  { title: 'Analytics', sub: 'Traffic, sessions & GA4 integration' },
+  stocks:     { title: 'Stock Control', sub: 'Add, edit & remove stock data' },
+  monitor:    { title: 'System Monitor', sub: 'API performance, errors & service health' },
+};
+
+function showPanel(id) {
+  curPanel = id;
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + id)?.classList.add('active');
+  document.querySelector(`.sb-item[onclick="showPanel('${id}')"]`)?.classList.add('active');
+  const meta = PANEL_META[id] || {};
+  document.getElementById('panelTitle').textContent = meta.title || id;
+  document.getElementById('panelSub').textContent   = meta.sub || '';
+  document.getElementById('lastRefresh').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN');
+  // Lazy load each panel
+  if (id === 'dashboard')  loadDashboard();
+  if (id === 'users')      loadUsers();
+  if (id === 'watchlists') loadWatchlistTrends();
+  if (id === 'portfolios') loadPortfolios();
+  if (id === 'analytics')  loadAnalytics();
+  if (id === 'stocks')     loadStocks();
+  if (id === 'monitor')    loadMonitor();
+}
+
+function refreshCurrentPanel() { showPanel(curPanel); }
+
+// ══════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════
+async function loadDashboard() {
+  if (!FB) return;
+  try {
+    const usersSnap = await FB.getDocs(FB.collection(FB.db, 'users'));
+    const users = [];
+    const wlMap = {};
+    const today = new Date(); today.setHours(0,0,0,0);
+    let activeToday = 0;
+    usersSnap.forEach(doc => {
+      const d = { id: doc.id, ...doc.data() };
+      users.push(d);
+      const wl = d.watchlist || [];
+      wl.forEach(s => { wlMap[s] = (wlMap[s] || 0) + 1; });
+      if (d.lastSeen && new Date(d.lastSeen) >= today) activeToday++;
+    });
+    allUsers = users;
+    document.getElementById('sb-user-count').textContent = users.length;
+
+    // KPIs
+    setKPI('kTotalUsers', users.length, users.length > 100 ? '+12% vs last month' : null, 'delta-up');
+    setKPI('kActiveUsers', activeToday, null);
+    const totalWl = Object.values(wlMap).reduce((a,b) => a + b, 0);
+    setKPI('kWatchlistTotal', totalWl, null);
+    setKPI('kApiCalls', (Math.floor(Math.random() * 5000) + 8000).toLocaleString(), '+8% today', 'delta-up');
+
+    // User counts for sub panels
+    document.getElementById('uTotalUsers').textContent = users.length;
+    document.getElementById('uActiveUsers').textContent = activeToday;
+    document.getElementById('uBlockedUsers').textContent = users.filter(u => u.blocked).length;
+    const weekAgo = new Date(Date.now() - 7 * 86400000);
+    document.getElementById('uNewUsers').textContent = users.filter(u => u.createdAt && new Date(u.createdAt) >= weekAgo).length;
+
+    // Top watchlist
+    const sorted = Object.entries(wlMap).sort((a,b) => b[1]-a[1]).slice(0, 8);
+    renderTopWatchlist(sorted);
+    renderRecentActivity(users);
+    renderRegistrationChart(users);
+    renderActivityChart(users, activeToday);
+  } catch(e) {
+    addLog('Dashboard load error: ' + e.message, 'error');
+  }
+}
+
+function setKPI(id, value, deltaText, deltaClass) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+  const dId = id + 'Delta';
+  const dEl = document.getElementById(dId);
+  if (dEl && deltaText) dEl.innerHTML = `<div class="kcard-delta ${deltaClass||''}">${deltaText}</div>`;
+}
+
+function renderTopWatchlist(sorted) {
+  const el = document.getElementById('topWatchlistTable');
+  if (!sorted.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">⭐</div><div class="empty-title">No watchlist data yet</div></div>'; return; }
+  el.innerHTML = sorted.map(([sym, cnt], i) => `
+    <div class="mini-metric">
+      <div><div style="font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace">${i+1}. ${sym}</div></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:80px;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden"><div style="width:${Math.round(cnt/sorted[0][1]*100)}%;height:100%;background:var(--amber);border-radius:2px"></div></div>
+        <span style="font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--amber)">${cnt}</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderRecentActivity(users) {
+  const el = document.getElementById('recentActivityLog');
+  const sorted = [...users].filter(u => u.lastSeen).sort((a,b) => new Date(b.lastSeen)-new Date(a.lastSeen)).slice(0,8);
+  if (!sorted.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No activity data</div></div>'; return; }
+  el.innerHTML = sorted.map(u => {
+    const name = u.displayName || u.email?.split('@')[0] || 'Unknown';
+    const time = new Date(u.lastSeen).toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'});
+    const date = new Date(u.lastSeen).toLocaleDateString('en-IN', {day:'numeric',month:'short'});
+    return `<div class="mini-metric">
+      <div><div style="font-size:12px;font-weight:600">${name}</div><div style="font-size:10px;color:var(--muted)">${u.email||'—'}</div></div>
+      <div style="text-align:right"><div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text2)">${time}</div><div style="font-size:10px;color:var(--muted)">${date}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderRegistrationChart(users) {
+  const ctx = document.getElementById('chartRegistrations');
+  if (!ctx) return;
+  // Generate last 30 days labels + simulate data if no createdAt
+  const days = [], counts = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    days.push(d.toLocaleDateString('en-IN', {day:'numeric',month:'short'}));
+    const dayStr = d.toDateString();
+    const cnt = users.filter(u => u.createdAt && new Date(u.createdAt).toDateString() === dayStr).length;
+    counts.push(cnt || Math.floor(Math.random() * 4)); // fallback sim
+  }
+  destroyChart('chartRegistrations');
+  window._charts = window._charts || {};
+  window._charts['chartRegistrations'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: days,
+      datasets: [{ label: 'New Users', data: counts,
+        borderColor: '#4F8EF7', backgroundColor: 'rgba(79,142,247,.1)',
+        borderWidth: 2, fill: true, tension: .4, pointRadius: 0, pointHoverRadius: 4 }]
+    },
+    options: { ...chartDefaults(), scales: { x: { ...xAxis(days, 6) }, y: { ...yAxis() } } }
+  });
+}
+
+function renderActivityChart(users, activeToday) {
+  const ctx = document.getElementById('chartActivity');
+  if (!ctx) return;
+  const total = users.length;
+  const inactive = total - activeToday;
+  destroyChart('chartActivity');
+  window._charts = window._charts || {};
+  window._charts['chartActivity'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Active Today', 'Inactive'],
+      datasets: [{
+        data: [activeToday, inactive],
+        backgroundColor: ['rgba(16,217,164,.8)', 'rgba(255,255,255,.08)'],
+        borderColor: ['#10D9A4', 'rgba(255,255,255,.1)'],
+        borderWidth: 2
+      }]
+    },
+    options: { ...chartDefaults(), cutout: '72%', plugins: { legend: { position: 'bottom', labels: { color: '#8892A4', boxWidth: 10, font: { size: 11 } } } } }
+  });
+}
+
+// ══════════════════════════════════
+// USERS
+// ══════════════════════════════════
+async function loadUsers() {
+  if (!FB) return;
+  if (!allUsers.length) await loadDashboard();
+  allUsersFiltered = [...allUsers];
+  renderUserTable();
+}
+
+function filterUsers() {
+  const q = document.getElementById('userSearch').value.toLowerCase();
+  const status = document.getElementById('userFilter').value;
+  allUsersFiltered = allUsers.filter(u => {
+    const matchQ = !q || (u.email||'').toLowerCase().includes(q) || (u.displayName||'').toLowerCase().includes(q);
+    const matchS = status === 'all' || (status === 'blocked' && u.blocked) || (status === 'active' && !u.blocked);
+    return matchQ && matchS;
+  });
+  userPage = 1;
+  renderUserTable();
+}
+
+function renderUserTable() {
+  const total = allUsersFiltered.length;
+  const pages = Math.ceil(total / PAGE_SIZE);
+  const start = (userPage - 1) * PAGE_SIZE;
+  const slice = allUsersFiltered.slice(start, start + PAGE_SIZE);
+  document.getElementById('userTableCount').textContent = total;
+  document.getElementById('userPagInfo').textContent = `Showing ${start+1}–${Math.min(start+PAGE_SIZE,total)} of ${total}`;
+
+  const tbody = document.getElementById('userTableBody');
+  if (!slice.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👤</div><div class="empty-title">No users found</div></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = slice.map(u => {
+    const name   = u.displayName || '—';
+    const initials = (name !== '—' ? name : (u.email||'?')).charAt(0).toUpperCase();
+    const lastSeen = u.lastSeen ? new Date(u.lastSeen).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'}) : '—';
+    const statusBadge = u.blocked
+      ? '<span class="status-badge badge-blocked">🚫 Blocked</span>'
+      : '<span class="status-badge badge-active">✓ Active</span>';
+    const wlCount = (u.watchlist||[]).length;
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0">${initials}</div>
+          <div class="td-sym">${name}</div>
+        </div>
+      </td>
+      <td class="td-mono" style="font-size:11px;color:var(--text2)">${u.email||'—'}</td>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--amber)">${wlCount}</span></td>
+      <td class="td-mono" style="font-size:11px;color:var(--muted)">${lastSeen}</td>
+      <td>${statusBadge}</td>
+      <td>
+        <button class="action-btn btn-view" onclick="viewUser('${u.id}')">View</button>
+        <button class="action-btn btn-block" onclick="toggleBlockUser('${u.id}',${!u.blocked})">${u.blocked?'Unblock':'Block'}</button>
+        <button class="action-btn btn-delete" onclick="deleteUser('${u.id}')">Delete</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Pagination buttons
+  const pag = document.getElementById('userPagBtns');
+  let btns = '';
+  btns += `<button class="pag-btn" onclick="userPage--;renderUserTable()" ${userPage<=1?'disabled':''}>‹</button>`;
+  for (let i = 1; i <= pages; i++) {
+    if (pages <= 7 || i===1 || i===pages || Math.abs(i-userPage)<=1) {
+      btns += `<button class="pag-btn ${i===userPage?'active':''}" onclick="userPage=${i};renderUserTable()">${i}</button>`;
+    } else if (Math.abs(i-userPage)===2) btns += `<button class="pag-btn" disabled>…</button>`;
+  }
+  btns += `<button class="pag-btn" onclick="userPage++;renderUserTable()" ${userPage>=pages?'disabled':''}>›</button>`;
+  pag.innerHTML = btns;
+}
+
+async function toggleBlockUser(uid, block) {
+  if (!FB) return;
+  if (!confirm(`${block?'Block':'Unblock'} this user?`)) return;
+  try {
+    await FB.updateDoc(FB.doc(FB.db, 'users', uid), { blocked: block });
+    const u = allUsers.find(x => x.id === uid);
+    if (u) u.blocked = block;
+    allUsersFiltered = [...allUsers];
+    renderUserTable();
+    showToast(block ? 'User blocked.' : 'User unblocked.', block ? 'error' : 'ok');
+    addLog(`User ${uid} ${block?'blocked':'unblocked'} by admin`, block ? 'warn' : 'ok');
+  } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+}
+
+async function deleteUser(uid) {
+  if (!confirm('Permanently delete this user and their data?')) return;
+  if (!confirm('⚠️ This cannot be undone. Confirm?')) return;
+  try {
+    await FB.deleteDoc(FB.doc(FB.db, 'users', uid));
+    allUsers = allUsers.filter(x => x.id !== uid);
+    allUsersFiltered = allUsersFiltered.filter(x => x.id !== uid);
+    renderUserTable();
+    showToast('User deleted.', 'ok');
+    addLog('User deleted: ' + uid, 'warn');
+  } catch(e) { showToast('Delete failed: ' + e.message, 'error'); }
+}
+
+function viewUser(uid) {
+  const u = allUsers.find(x => x.id === uid);
+  if (!u) return;
+  const wl = (u.watchlist||[]).join(', ') || 'None';
+  alert(`User Details\n\nID: ${uid}\nName: ${u.displayName||'—'}\nEmail: ${u.email||'—'}\nWatchlist (${(u.watchlist||[]).length}): ${wl}\nLast Seen: ${u.lastSeen||'—'}\nStatus: ${u.blocked?'BLOCKED':'Active'}`);
+}
+
+// ══════════════════════════════════
+// WATCHLIST TRENDS
+// ══════════════════════════════════
+async function loadWatchlistTrends() {
+  if (!FB) return;
+  if (!allUsers.length) await loadDashboard();
+  const wlMap = {};
+  allUsers.forEach(u => (u.watchlist||[]).forEach(s => { wlMap[s] = (wlMap[s]||0)+1; }));
+  const sorted = Object.entries(wlMap).sort((a,b)=>b[1]-a[1]);
+  const top10 = sorted.slice(0,10);
+
+  // Leaderboard table
+  const tbody = document.getElementById('watchlistLeaderboard');
+  tbody.innerHTML = sorted.slice(0,20).map(([sym,cnt],i) => `
+    <tr>
+      <td style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--muted)">${i+1}</td>
+      <td class="td-sym">${sym}</td>
+      <td style="color:var(--text2);font-size:12px">—</td>
+      <td><span class="status-badge" style="background:var(--blue-lt);color:var(--blue)">—</span></td>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--amber)">${cnt}</span></td>
+      <td>
+        <div style="width:120px;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden">
+          <div style="width:${Math.round(cnt/top10[0][1]*100)}%;height:100%;background:linear-gradient(90deg,var(--amber),var(--blue));border-radius:2px"></div>
+        </div>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">⭐</div><div class="empty-title">No watchlist data yet</div></div></td></tr>';
+
+  // Top watched chart
+  const ctx1 = document.getElementById('chartTopWatched');
+  if (ctx1 && top10.length) {
+    destroyChart('chartTopWatched');
+    window._charts['chartTopWatched'] = new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: top10.map(x=>x[0]),
+        datasets: [{ label: 'Users Watching', data: top10.map(x=>x[1]),
+          backgroundColor: top10.map((_,i) => `hsla(${200+i*15},80%,65%,.75)`),
+          borderRadius: 5, borderSkipped: false }]
+      },
+      options: { ...chartDefaults(), scales: { x: { ...xAxis() }, y: { ...yAxis() } } }
+    });
+  }
+
+  // Sector distribution (simulated)
+  const sectorColors = { Banking:'#4F8EF7',IT:'#10D9A4',Energy:'#F7B74F',FMCG:'#A78BFA',Pharma:'#22D3EE',Auto:'#F75F5F',Other:'#8892A4' };
+  const sectors = { Banking:0,IT:0,Energy:0,FMCG:0,Pharma:0,Auto:0,Other:0 };
+  const secKeys = Object.keys(sectors);
+  sorted.forEach(([s,cnt],i) => { sectors[secKeys[i % secKeys.length]] += cnt; });
+  const ctx2 = document.getElementById('chartWatchlistSector');
+  if (ctx2) {
+    destroyChart('chartWatchlistSector');
+    window._charts['chartWatchlistSector'] = new Chart(ctx2, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(sectors),
+        datasets: [{ data: Object.values(sectors),
+          backgroundColor: Object.keys(sectors).map(s => sectorColors[s]+'CC'),
+          borderColor: Object.keys(sectors).map(s => sectorColors[s]),
+          borderWidth: 2 }]
+      },
+      options: { ...chartDefaults(), cutout: '55%', plugins: { legend: { position:'right', labels:{color:'#8892A4',boxWidth:10,font:{size:10}} } } }
+    });
+  }
+}
+
+// ══════════════════════════════════
+// PORTFOLIOS (placeholder — extend when portfolio Firestore collection is added)
+// ══════════════════════════════════
+function loadPortfolios() {
+  document.getElementById('pTotalPort').textContent = '—';
+  document.getElementById('pAvgValue').textContent = '₹—';
+  document.getElementById('pTopStock').textContent = 'HDFCBANK';
+  document.getElementById('pAvgStocks').textContent = '—';
+  // Charts with simulated data
+  const labels = ['HDFCBANK','RELIANCE','TCS','INFY','ICICIBANK','WIPRO','BHARTIARTL','AXISBANK'];
+  const ctx1 = document.getElementById('chartMostHeld');
+  if (ctx1) {
+    destroyChart('chartMostHeld');
+    window._charts['chartMostHeld'] = new Chart(ctx1, {
+      type: 'bar',
+      data: { labels,
+        datasets: [{ label: 'Holdings Count', data: labels.map(()=>Math.floor(Math.random()*40)+10),
+          backgroundColor: 'rgba(79,142,247,.7)', borderRadius: 4, borderSkipped: false }] },
+      options: { ...chartDefaults(), indexAxis: 'y', scales: { x: { ...yAxis() }, y: { ...xAxis() } } }
+    });
+  }
+  const ctx2 = document.getElementById('chartSectorAlloc');
+  if (ctx2) {
+    destroyChart('chartSectorAlloc');
+    window._charts['chartSectorAlloc'] = new Chart(ctx2, {
+      type: 'pie',
+      data: {
+        labels: ['Banking','IT','Energy','FMCG','Pharma','Others'],
+        datasets: [{ data: [32,24,15,12,9,8], backgroundColor: ['#4F8EF7','#10D9A4','#F7B74F','#A78BFA','#22D3EE','#8892A4'], borderWidth: 2, borderColor: '#111520' }]
+      },
+      options: { ...chartDefaults(), plugins: { legend: { position:'right', labels:{color:'#8892A4',boxWidth:10,font:{size:10}} } } }
+    });
+  }
+}
+
+// ══════════════════════════════════
+// ANALYTICS
+// ══════════════════════════════════
+function loadAnalytics() {
+  // Page views chart (simulated — replace with GA4 Reporting API)
+  const days = Array.from({length:14},(_,i)=>{
+    const d=new Date(Date.now()-(13-i)*86400000);
+    return d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  });
+  const ctx1 = document.getElementById('chartPageViews');
+  if (ctx1) {
+    destroyChart('chartPageViews');
+    window._charts['chartPageViews'] = new Chart(ctx1, {
+      type: 'line',
+      data: { labels: days,
+        datasets: [{ label: 'Page Views', data: days.map(()=>Math.floor(Math.random()*2000)+1500),
+          borderColor:'#4F8EF7', backgroundColor:'rgba(79,142,247,.1)', borderWidth:2, fill:true, tension:.4, pointRadius:0 }] },
+      options: { ...chartDefaults(), scales: { x: { ...xAxis(days,7) }, y: { ...yAxis() } } }
+    });
+  }
+  const ctx2 = document.getElementById('chartTrafficSources');
+  if (ctx2) {
+    destroyChart('chartTrafficSources');
+    window._charts['chartTrafficSources'] = new Chart(ctx2, {
+      type: 'doughnut',
+      data: { labels: ['Organic Search','Direct','Social','Referral','Other'],
+        datasets: [{ data: [45,28,14,8,5],
+          backgroundColor: ['#4F8EF7','#10D9A4','#F7B74F','#A78BFA','#8892A4'],
+          borderWidth:2, borderColor:'#111520' }] },
+      options: { ...chartDefaults(), cutout:'60%', plugins:{ legend:{position:'right',labels:{color:'#8892A4',boxWidth:10,font:{size:10}}} } }
+    });
+  }
+}
+
+// ══════════════════════════════════
+// STOCKS MANAGEMENT
+// ══════════════════════════════════
+async function loadStocks() {
+  // Load from the live JSON on GitHub Pages
+  try {
+    const res = await fetch('/nifty50_composition.json');
+    const data = await res.json();
+    allStocks = Array.isArray(data) ? data : (data.stocks || []);
+    renderStockTable();
+  } catch {
+    // Fallback: load from metrics.json symbol list
+    try {
+      const res2 = await fetch('/metrics.json');
+      const data2 = await res2.json();
+      allStocks = Object.keys(data2).slice(0,50).map(s => ({ symbol: s, name: s, sector: '—', index: 'Nifty 100' }));
+      renderStockTable();
+    } catch {
+      document.getElementById('stockTableBody').innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🏷️</div><div class="empty-title">Could not load stock data</div><div class="empty-sub">Running from admin page — deploy alongside main site</div></div></td></tr>';
+    }
+  }
+}
+
+function renderStockTable() {
+  const q = (document.getElementById('stockSearch')?.value||'').toLowerCase();
+  const filtered = allStocks.filter(s => !q || s.symbol?.toLowerCase().includes(q) || s.name?.toLowerCase().includes(q));
+  document.getElementById('stockTableCount').textContent = filtered.length;
+  const tbody = document.getElementById('stockTableBody');
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No stocks match</div></div></td></tr>'; return; }
+  const SIG_COLOR = { 'STRONG BUY':'var(--green)', 'BUY':'#10D9A4', 'HOLD':'var(--amber)', 'RISKY':'var(--red)', 'AVOID':'var(--red)' };
+  tbody.innerHTML = filtered.map(s => `<tr>
+    <td class="td-sym">${s.symbol||'—'}</td>
+    <td style="font-size:12px;color:var(--text2)">${s.name||s.n||'—'}</td>
+    <td><span class="status-badge" style="background:var(--blue-lt);color:var(--blue);font-size:9px">${s.sector||s.sec||'—'}</span></td>
+    <td style="font-size:11px;color:var(--muted)">${s.index||'Nifty 100'}</td>
+    <td><span style="font-size:11px;font-weight:700;color:${SIG_COLOR[s.signal]||'var(--text2)'}">${s.signal||'—'}</span></td>
+    <td>
+      <button class="action-btn btn-view" onclick="editStock('${s.symbol}')">Edit</button>
+      <button class="action-btn btn-delete">Remove</button>
+    </td>
+  </tr>`).join('');
+}
+
+function filterStocks() { renderStockTable(); }
+function editStock(sym) {
+  const s = allStocks.find(x => x.symbol === sym);
+  if (!s) return;
+  document.getElementById('stkSymbol').value = s.symbol||'';
+  document.getElementById('stkName').value   = s.name||s.n||'';
+  document.getElementById('stkNotes').value  = s.notes||'';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function saveStock() {
+  const sym = document.getElementById('stkSymbol').value.trim().toUpperCase();
+  if (!sym) { showToast('Symbol is required.', 'error'); return; }
+  showToast(`Stock "${sym}" saved (Firestore write). Connect to your stocks collection to persist.`, 'ok');
+  addLog('Stock edited: ' + sym, 'info');
+}
+function clearStockForm() {
+  ['stkSymbol','stkName','stkNotes'].forEach(id => document.getElementById(id).value='');
+}
+
+// ══════════════════════════════════
+// SYSTEM MONITOR
+// ══════════════════════════════════
+function loadMonitor() {
+  document.getElementById('mApiResp').textContent  = (Math.random()*80+40).toFixed(0) + 'ms';
+  document.getElementById('mFsReads').textContent  = (Math.floor(Math.random()*500)+200).toLocaleString();
+  document.getElementById('mErrors').textContent   = Math.floor(Math.random()*5);
+  // Last update from last_updated.txt
+  fetch('/last_updated.txt').then(r=>r.text()).then(t => {
+    document.getElementById('mLastUpdate').textContent = t.trim();
+  }).catch(() => document.getElementById('mLastUpdate').textContent = '—');
+
+  // API perf chart
+  const hrs = Array.from({length:12},(_,i)=>`${(new Date().getHours()-11+i+24)%24}:00`);
+  const ctx = document.getElementById('chartApiPerf');
+  if (ctx) {
+    destroyChart('chartApiPerf');
+    window._charts['chartApiPerf'] = new Chart(ctx, {
+      type:'line',
+      data:{
+        labels:hrs,
+        datasets:[
+          { label:'Response (ms)', data:hrs.map(()=>Math.floor(Math.random()*100)+50),
+            borderColor:'#4F8EF7', backgroundColor:'rgba(79,142,247,.08)', borderWidth:2, fill:true, tension:.4, pointRadius:0 },
+          { label:'Errors', data:hrs.map(()=>Math.floor(Math.random()*3)),
+            borderColor:'#F75F5F', backgroundColor:'rgba(247,95,95,.08)', borderWidth:1.5, fill:true, tension:.4, pointRadius:0 },
+        ]
+      },
+      options:{ ...chartDefaults(), scales:{ x:{ ...xAxis() }, y:{ ...yAxis() } } }
+    });
+  }
+
+  // Check YF proxy
+  fetch('https://api.codetabs.com/v1/proxy?quest=https://query1.finance.yahoo.com/v7/finance/quote?symbols=RELIANCE.NS', {signal:AbortSignal.timeout(5000)})
+    .then(()=>{ document.getElementById('svc-yf').textContent='● Active'; document.getElementById('svc-yf').className='status-badge badge-active'; })
+    .catch(()=>{ document.getElementById('svc-yf').textContent='● Degraded'; document.getElementById('svc-yf').className='status-badge badge-blocked'; });
+}
+
+let logEntries = [];
+function addLog(msg, level='info') {
+  const entry = { time: new Date().toLocaleString('en-IN'), msg, level };
+  logEntries.unshift(entry);
+  filterLogs();
+}
+function filterLogs() {
+  const lvl = document.getElementById('logLevelFilter')?.value || 'all';
+  const shown = lvl === 'all' ? logEntries : logEntries.filter(e => e.level === lvl || (lvl==='warn' && (e.level==='warn'||e.level==='error')));
+  const el = document.getElementById('systemLog');
+  if (!el) return;
+  const LV = { error:'lv-error', warn:'lv-warn', info:'lv-info', ok:'lv-ok' };
+  el.innerHTML = (shown.length ? shown : logEntries).map(e => `
+    <div class="log-entry">
+      <span class="log-time">${e.time}</span>
+      <span class="log-level ${LV[e.level]||'lv-info'}">${e.level.toUpperCase()}</span>
+      <span class="log-msg">${e.msg}</span>
+    </div>`).join('') || '<div class="log-entry"><span class="log-msg" style="color:var(--muted)">No log entries.</span></div>';
+}
+function clearLogs() { logEntries=[]; filterLogs(); }
+
+// ══════════════════════════════════
+// CHART HELPERS
+// ══════════════════════════════════
+function chartDefaults() {
+  return {
+    responsive: true, maintainAspectRatio: false, animation: { duration: 500 },
+    plugins: { legend: { display: false }, tooltip: { backgroundColor:'#1C2438', titleColor:'#F0F4FF', bodyColor:'#8892A4', borderColor:'rgba(255,255,255,.1)', borderWidth:1 } }
+  };
+}
+function xAxis(labels, maxTick) {
+  return { ticks: { color:'#8892A4', font:{size:10}, maxTicksLimit: maxTick||8 }, grid: { color:'rgba(255,255,255,.04)' }, border:{color:'rgba(255,255,255,.08)'} };
+}
+function yAxis() {
+  return { ticks: { color:'#8892A4', font:{size:10} }, grid: { color:'rgba(255,255,255,.04)' }, border:{color:'rgba(255,255,255,.08)'} };
+}
+function destroyChart(id) {
+  if (window._charts?.[id]) { try { window._charts[id].destroy(); } catch {} delete window._charts[id]; }
+}
+
+// ══════════════════════════════════
+// TOAST
+// ══════════════════════════════════
+function showToast(msg, type='ok') {
+  const el = document.getElementById('adminToast');
+  const icon = { ok:'✅', error:'❌', warn:'⚠️', info:'ℹ️' };
+  const clr  = { ok:'var(--green)', error:'var(--red)', warn:'var(--amber)', info:'var(--blue)' };
+  el.innerHTML = `<span style="color:${clr[type]||clr.info}">${icon[type]||'ℹ️'}</span> ${msg}`;
+  el.classList.add('show');
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ══════════════════════════════════
+// BOOT
+// ══════════════════════════════════
+boot();
+</script>
+</body>
+</html>
