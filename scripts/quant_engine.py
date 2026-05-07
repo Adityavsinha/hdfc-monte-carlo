@@ -670,10 +670,10 @@ def generate_signal(
         score = max(score - 1, score)   # high-beta stocks capped
 
     # ── Map to signal ────────────────────────────────────────
-    if   score >= 6:   signal, color = "STRONG BUY", "#00c853"
-    elif score >= 2:   signal, color = "BUY",         "#2ecc8a"
-    elif score >= -2:  signal, color = "HOLD",        "#f0b429"
-    elif score >= -5:  signal, color = "RISKY",       "#ff9800"
+    if   score >= 5:   signal, color = "STRONG BUY", "#00c853"
+    elif score >= 1:   signal, color = "BUY",         "#2ecc8a"
+    elif score >= -3:  signal, color = "HOLD",        "#f0b429"
+    elif score >= -6:  signal, color = "RISKY",       "#ff9800"
     else:              signal, color = "AVOID",        "#e02d3c"
 
     # Confidence: normalise score to 0-100
