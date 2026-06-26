@@ -1,8 +1,8 @@
 {
   "portfolio_var_95": -0.163,
   "portfolio_var_99": -0.1603,
-  "portfolio_cvar_95": -0.1616,
-  "portfolio_expected_ret": 0.168,
+  "portfolio_cvar_95": -0.1615,
+  "portfolio_expected_ret": 0.1679,
   "corr_symbols": [
     "ADANIGREEN",
     "LAURUSLABS",
@@ -104,5 +104,5 @@
     "VEDL"
   ],
   "n_simulations": 2000,
-  "last_updated": "25 Jun 2026 15:44 IST"
+  "last_updated": "26 Jun 2026 15:28 IST"
 }
