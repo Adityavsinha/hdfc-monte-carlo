@@ -1,10 +1,10 @@
 {
-  "last_updated": "01 Oct 2026 18:45 IST",
+  "last_updated": "02 Oct 2026 18:17 IST",
   "regime": "Bear",
   "bull_prob": 0.25,
   "bear_prob": 0.75,
   "drift_adjustment": -0.0001,
   "method": "Rolling-window",
-  "mean_bull": -31.78,
-  "mean_bear": -77.52
+  "mean_bull": -26.5,
+  "mean_bear": -81.2
 }
